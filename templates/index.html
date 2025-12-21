@@ -31,24 +31,21 @@
     </div>
 
     <!-- 主内容 -->
-    <div class="flex h-[calc(100vh-64px)]">
-        <!-- 文件面板 -->
-        <aside class="w-72 bg-base-200 border-r border-base-300 flex flex-col">
-            <div class="p-4 border-b border-base-300">
-                <h2 class="text-sm font-semibold text-base-content/70 uppercase tracking-wide">选择小说</h2>
-                <div class="text-xs text-base-content/50 mt-1" x-text="fileStats">加载中...</div>
-            </div>
-            <div class="flex-1 overflow-y-auto p-3 space-y-2" id="folderList"></div>
-        </aside>
-
-        <!-- 结果面板 -->
-        <section class="flex-1 flex flex-col overflow-hidden">
-            <!-- 结果头部 -->
-            <div class="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="text-lg font-semibold" x-text="novelTitle">选择一本小说</span>
-                    <span class="badge badge-success" x-show="analysisComplete">分析完成</span>
+    <main class="min-h-[calc(100vh-64px)] py-8">
+        <div class="max-w-6xl mx-auto px-6">
+            <!-- 选择区域 -->
+            <div class="flex items-center gap-4 mb-6">
+                <div class="dropdown dropdown-bottom flex-1">
+                    <div tabindex="0" role="button" class="btn btn-outline w-full justify-between">
+                        <span x-text="selectedNovel ? selectedNovel.name : '选择小说...'">选择小说...</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div tabindex="0" class="dropdown-content z-50 bg-base-200 border border-base-300 rounded-lg shadow-xl w-full max-h-80 overflow-y-auto mt-2">
+                        <div class="p-2 text-xs text-base-content/50" x-text="fileStats">加载中...</div>
+                        <div id="folderList" class="p-2 space-y-1"></div>
+                    </div>
                 </div>
+                <span class="badge badge-success" x-show="analysisComplete" x-cloak>分析完成</span>
                 <button class="btn btn-primary" @click="analyzeNovel()" :disabled="!selectedNovel || loading">
                     <span class="loading loading-spinner loading-sm" x-show="loading"></span>
                     <span x-text="loading ? '分析中...' : '开始分析'"></span>
@@ -56,21 +53,29 @@
             </div>
 
             <!-- 错误提示 -->
-            <div class="alert alert-error mx-4 mt-4" x-show="errorMsg" x-cloak>
+            <div class="alert alert-error mb-6" x-show="errorMsg" x-cloak>
                 <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span x-text="errorMsg"></span>
             </div>
 
-            <!-- Tab栏 -->
-            <div class="tabs tabs-boxed bg-base-200 mx-4 mt-4 p-1">
-                <template x-for="tab in tabs" :key="tab.id">
-                    <a class="tab" :class="{ 'tab-active': currentTab === tab.id }" @click="currentTab = tab.id" x-text="tab.name"></a>
-                </template>
-                <a class="tab ml-auto" @click="doExport()">导出</a>
+            <!-- Tab栏 - 下划线风格 -->
+            <div class="border-b border-base-300 mb-6">
+                <div class="flex gap-1">
+                    <template x-for="tab in tabs" :key="tab.id">
+                        <button class="px-4 py-2 text-sm font-medium transition-colors relative"
+                            :class="currentTab === tab.id ? 'text-primary' : 'text-base-content/60 hover:text-base-content'"
+                            @click="currentTab = tab.id">
+                            <span x-text="tab.name"></span>
+                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary transition-transform origin-left"
+                                :class="currentTab === tab.id ? 'scale-x-100' : 'scale-x-0'"></span>
+                        </button>
+                    </template>
+                    <button class="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content ml-auto" @click="doExport()">导出</button>
+                </div>
             </div>
 
             <!-- Tab内容 -->
-            <div class="flex-1 overflow-y-auto p-4">
+            <div>
                 <!-- 总结 -->
                 <div x-show="currentTab === 'summary'" x-cloak>
                     <div id="quickStats"></div>
@@ -82,7 +87,7 @@
                 </div>
                 <!-- 关系图 -->
                 <div x-show="currentTab === 'relationships'" x-cloak>
-                    <div class="card bg-base-200 h-[calc(100vh-280px)] min-h-96" id="relationshipChart"></div>
+                    <div class="bg-base-200 border border-base-300 rounded-lg h-[600px]" id="relationshipChart"></div>
                 </div>
                 <!-- 首次 -->
                 <div x-show="currentTab === 'firstsex'" x-cloak>
@@ -103,8 +108,8 @@
                     <span class="mt-4 text-base-content/70">正在分析小说...</span>
                 </div>
             </div>
-        </section>
-    </div>
+        </div>
+    </main>
 
     <!-- 设置模态框 -->
     <dialog class="modal" :class="{ 'modal-open': settingsOpen }">
@@ -308,51 +313,28 @@
 
                     const frag = document.createDocumentFragment();
                     (novels || []).forEach(folder => {
-                        const collapse = document.createElement('div');
-                        collapse.className = 'collapse bg-base-300 rounded-lg w-full';
+                        const folderDiv = document.createElement('div');
+                        folderDiv.className = 'mb-2';
 
-                        const input = document.createElement('input');
-                        input.type = 'checkbox';
-
-                        const title = document.createElement('div');
-                        title.className = 'collapse-title text-sm font-medium flex items-center gap-2 pr-4 w-full';
-
-                        const folderIcon = document.createElement('span');
-                        folderIcon.textContent = '📁';
-
-                        const folderName = document.createElement('span');
-                        folderName.className = 'flex-1 min-w-0 truncate';
-                        folderName.textContent = String(folder.folder ?? '');
-
-                        const badge = document.createElement('span');
-                        badge.className = 'badge badge-sm shrink-0';
-                        badge.textContent = String((folder.files || []).length);
-
-                        title.append(folderIcon, folderName, badge);
-
-                        const content = document.createElement('div');
-                        content.className = 'collapse-content space-y-1 min-w-0';
+                        const folderLabel = document.createElement('div');
+                        folderLabel.className = 'text-xs text-base-content/50 px-2 py-1';
+                        folderLabel.textContent = folder.folder || '';
+                        folderDiv.appendChild(folderLabel);
 
                         (folder.files || []).forEach(file => {
                             const item = document.createElement('div');
-                            item.className = 'p-2 rounded cursor-pointer hover:bg-base-100 text-sm flex items-center gap-2 file-item min-w-0';
+                            item.className = 'px-3 py-2 rounded cursor-pointer hover:bg-base-300 text-sm truncate file-item';
                             item.dataset.path = String(file.path ?? '');
                             item.dataset.name = String(file.name ?? '');
-
-                            const fileIcon = document.createElement('span');
-                            fileIcon.textContent = '📄';
-
-                            const name = document.createElement('span');
-                            name.className = 'flex-1 min-w-0 truncate';
-                            name.textContent = String(file.name ?? '');
-
-                            item.append(fileIcon, name);
-                            item.addEventListener('click', () => this.selectNovel(item.dataset.path, item.dataset.name, item));
-                            content.appendChild(item);
+                            item.textContent = String(file.name ?? '');
+                            item.addEventListener('click', () => {
+                                this.selectNovel(item.dataset.path, item.dataset.name, item);
+                                document.activeElement?.blur();
+                            });
+                            folderDiv.appendChild(item);
                         });
 
-                        collapse.append(input, title, content);
-                        frag.appendChild(collapse);
+                        frag.appendChild(folderDiv);
                     });
 
                     container.appendChild(frag);

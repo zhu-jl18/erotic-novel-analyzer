@@ -1,5 +1,11 @@
 /* 小说分析器 - 精简样式 (Tailwind + DaisyUI 补充) */
 
+/* shadcn 风格变量 */
+:root {
+    --radius: 0.75rem;
+    --border-color: oklch(var(--bc) / 0.1);
+}
+
 /* Alpine.js cloak */
 [x-cloak] { display: none !important; }
 
@@ -33,18 +39,19 @@
 .char-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
-/* 角色卡片 - iOS风格 */
+/* 角色卡片 - shadcn风格 */
 .char-card {
     background: oklch(var(--b2));
-    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
     padding: 1.25rem;
-    transition: transform 0.2s;
+    transition: border-color 0.2s;
 }
 .char-card:hover {
-    transform: scale(1.01);
+    border-color: oklch(var(--bc) / 0.2);
 }
 
 .char-header {
@@ -83,7 +90,7 @@
     margin: 0.75rem -1.25rem -1.25rem;
     padding: 1rem 1.25rem;
     background: oklch(var(--er) / 0.1);
-    border-radius: 0 0 1rem 1rem;
+    border-radius: 0 0 var(--radius) var(--radius);
 }
 .lewdness-text { color: oklch(var(--er)); font-style: italic; }
 
@@ -109,10 +116,11 @@
     border-bottom: 1px solid oklch(var(--bc) / 0.1);
 }
 
-/* 场景卡片 - iOS风格 */
+/* 场景卡片 - shadcn风格 */
 .sex-scene-card {
     background: oklch(var(--b2));
-    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
     padding: 1.5rem;
     margin-bottom: 1rem;
 }
@@ -121,7 +129,7 @@
     background: oklch(var(--er));
     color: white;
     padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
+    border-radius: 0.375rem;
     font-size: 0.75rem;
     font-weight: 600;
 }
@@ -135,7 +143,8 @@
     text-align: center;
     padding: 2rem;
     background: oklch(var(--b2));
-    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
     margin-bottom: 1.5rem;
 }
 .count-number {
@@ -148,13 +157,14 @@
 }
 .count-label { font-size: 1rem; opacity: 0.6; margin-top: 0.5rem; }
 
-.scenes-timeline { display: flex; flex-direction: column; gap: 0.5rem; }
+.scenes-timeline { display: flex; flex-direction: column; gap: 0.75rem; }
 .scene-item {
     display: flex;
     align-items: center;
     padding: 0.75rem 1rem;
     background: oklch(var(--b2));
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--radius) - 0.25rem);
 }
 .scene-number {
     width: 2rem;
@@ -194,7 +204,8 @@
     position: relative;
     padding: 1rem;
     background: oklch(var(--b2));
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--radius) - 0.25rem);
     margin-bottom: 0.75rem;
 }
 .progress-dot {
@@ -220,8 +231,9 @@
 /* 总结区域 */
 .summary-section {
     background: oklch(var(--b2));
+    border: 1px solid var(--border-color);
     padding: 1.25rem;
-    border-radius: 1rem;
+    border-radius: var(--radius);
     margin-top: 1rem;
 }
 .summary-title {
@@ -235,8 +247,9 @@
 /* 小说元信息 */
 .novel-meta-section {
     background: oklch(var(--b2));
+    border: 1px solid var(--border-color);
     padding: 1.25rem;
-    border-radius: 1rem;
+    border-radius: var(--radius);
     margin-bottom: 1rem;
 }
 .novel-meta-grid {
@@ -261,11 +274,12 @@
 .quick-stat-title { font-size: 0.7rem; opacity: 0.5; text-transform: uppercase; }
 .quick-stat-value { font-size: 2.25rem; font-weight: 700; line-height: 1.1; }
 
-/* 角色名称展示 - iOS风格 */
+/* 角色名称展示 - shadcn风格 */
 .char-names-section {
     background: oklch(var(--b2));
+    border: 1px solid var(--border-color);
     padding: 1.25rem;
-    border-radius: 1rem;
+    border-radius: var(--radius);
     margin-bottom: 1rem;
 }
 .char-names-grid {
@@ -287,7 +301,7 @@
 .char-names-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .char-name-tag {
     padding: 0.375rem 0.875rem;
-    border-radius: 2rem;
+    border-radius: 0.375rem;
     font-size: 0.875rem;
     font-weight: 500;
     background: oklch(var(--b3));
