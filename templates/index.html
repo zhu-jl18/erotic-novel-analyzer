@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN" x-data="app()" :data-theme="theme" x-init="init()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说分析器</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="min-h-screen bg-base-100">
+    <!-- 顶栏 -->
+    <div class="navbar bg-base-100 border-b border-base-300 px-4 sticky top-0 z-40">
+        <div class="flex-1">
+            <span class="text-xl font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">小说分析器</span>
+        </div>
+        <div class="flex-none gap-1">
+            <button class="btn btn-ghost btn-circle" @click="settingsOpen = true" title="设置">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-circle" @click="logsOpen = true" title="日志">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </button>
+            <label class="swap swap-rotate btn btn-ghost btn-circle">
+                <input type="checkbox" @change="toggleTheme()" :checked="theme === 'light'">
+                <svg class="swap-on w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <svg class="swap-off w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            </label>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="flex h-[calc(100vh-64px)]">
+        <!-- 文件面板 -->
+        <aside class="w-72 bg-base-200 border-r border-base-300 flex flex-col">
+            <div class="p-4 border-b border-base-300">
+                <h2 class="text-sm font-semibold text-base-content/70 uppercase tracking-wide">选择小说</h2>
+                <div class="text-xs text-base-content/50 mt-1" x-text="fileStats">加载中...</div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 space-y-2" id="folderList"></div>
+        </aside>
+
+        <!-- 结果面板 -->
+        <section class="flex-1 flex flex-col overflow-hidden">
+            <!-- 结果头部 -->
+            <div class="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-lg font-semibold" x-text="novelTitle">选择一本小说</span>
+                    <span class="badge badge-success" x-show="analysisComplete">分析完成</span>
+                </div>
+                <button class="btn btn-primary" @click="analyzeNovel()" :disabled="!selectedNovel || loading">
+                    <span class="loading loading-spinner loading-sm" x-show="loading"></span>
+                    <span x-text="loading ? '分析中...' : '开始分析'"></span>
+                </button>
+            </div>
+
+            <!-- 错误提示 -->
+            <div class="alert alert-error mx-4 mt-4" x-show="errorMsg" x-cloak>
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span x-text="errorMsg"></span>
+            </div>
+
+            <!-- Tab栏 -->
+            <div class="tabs tabs-boxed bg-base-200 mx-4 mt-4 p-1">
+                <template x-for="tab in tabs" :key="tab.id">
+                    <a class="tab" :class="{ 'tab-active': currentTab === tab.id }" @click="currentTab = tab.id" x-text="tab.name"></a>
+                </template>
+                <a class="tab ml-auto" @click="doExport()">导出</a>
+            </div>
+
+            <!-- Tab内容 -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <!-- 总结 -->
+                <div x-show="currentTab === 'summary'" x-cloak>
+                    <div id="quickStats"></div>
+                    <div id="relationshipSummary"></div>
+                </div>
+                <!-- 主角 -->
+                <div x-show="currentTab === 'characters'" x-cloak>
+                    <div id="mainCharacters"></div>
+                </div>
+                <!-- 关系图 -->
+                <div x-show="currentTab === 'relationships'" x-cloak>
+                    <div class="card bg-base-200 h-[calc(100vh-280px)] min-h-96" id="relationshipChart"></div>
+                </div>
+                <!-- 首次 -->
+                <div x-show="currentTab === 'firstsex'" x-cloak>
+                    <div id="firstSexScene"></div>
+                </div>
+                <!-- 统计 -->
+                <div x-show="currentTab === 'count'" x-cloak>
+                    <div id="sexSceneCount"></div>
+                </div>
+                <!-- 发展 -->
+                <div x-show="currentTab === 'progress'" x-cloak>
+                    <div id="relationshipProgress"></div>
+                </div>
+
+                <!-- 加载状态 -->
+                <div class="flex flex-col items-center justify-center h-64" x-show="loading" x-cloak>
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                    <span class="mt-4 text-base-content/70">正在分析小说...</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 设置模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': settingsOpen }">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">设置</h3>
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" @click="settingsOpen = false">✕</button>
+
+            <div class="form-control w-full mt-4">
+                <label class="label"><span class="label-text">API URL</span></label>
+                <input type="text" class="input input-bordered w-full" x-model="apiUrl" placeholder="https://api.example.com/v1">
+            </div>
+            <div class="form-control w-full mt-2">
+                <label class="label"><span class="label-text">API Key</span></label>
+                <div class="join w-full">
+                    <input :type="showKey ? 'text' : 'password'" class="input input-bordered join-item flex-1" x-model="apiKey" placeholder="sk-...">
+                    <button class="btn join-item" @click="showKey = !showKey" x-text="showKey ? '隐藏' : '显示'"></button>
+                </div>
+            </div>
+            <div class="form-control w-full mt-2">
+                <label class="label"><span class="label-text">模型名称</span></label>
+                <input type="text" class="input input-bordered w-full" x-model="modelName" placeholder="gpt-4">
+            </div>
+
+            <div class="flex items-center gap-2 mt-4" x-show="testResult">
+                <span class="badge" :class="testResult === 'success' ? 'badge-success' : 'badge-error'" x-text="testResultMsg"></span>
+            </div>
+
+            <div class="modal-action">
+                <button class="btn btn-error btn-outline" @click="clearAnalysis()">清空分析</button>
+                <button class="btn btn-outline" @click="testConnection()" :disabled="testLoading">
+                    <span class="loading loading-spinner loading-sm" x-show="testLoading"></span>
+                    测试连接
+                </button>
+                <button class="btn btn-primary" @click="saveConfig()">保存</button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop bg-black/50" @click="settingsOpen = false"></form>
+    </dialog>
+
+    <!-- 日志抽屉 -->
+    <div class="drawer drawer-end" :class="{ 'z-50': logsOpen }">
+        <input type="checkbox" class="drawer-toggle" :checked="logsOpen">
+        <div class="drawer-side">
+            <label class="drawer-overlay" @click="logsOpen = false"></label>
+            <div class="bg-base-200 w-96 min-h-full flex flex-col">
+                <div class="p-4 border-b border-base-300 flex justify-between items-center">
+                    <h2 class="text-lg font-bold">调试日志</h2>
+                    <div class="flex gap-2">
+                        <button class="btn btn-sm btn-ghost" @click="clearLog()">清空</button>
+                        <button class="btn btn-sm btn-ghost" @click="logsOpen = false">关闭</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs" id="logContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast toast-end" id="toastContainer"></div>
+
+    <script src="/static/chart-view.js"></script>
+    <script>
+        function app() {
+            return {
+                theme: localStorage.getItem('theme') || 'dark',
+                settingsOpen: false,
+                logsOpen: false,
+                apiUrl: localStorage.getItem('novel_analyzer_api_url') || '',
+                apiKey: localStorage.getItem('novel_analyzer_api_key') || '',
+                modelName: localStorage.getItem('novel_analyzer_model_name') || '',
+                showKey: false,
+                selectedNovel: null,
+                currentNovelContent: null,
+                currentAnalysis: null,
+                loading: false,
+                analysisComplete: false,
+                errorMsg: '',
+                novelTitle: '选择一本小说',
+                fileStats: '加载中...',
+                currentTab: 'summary',
+                testResult: '',
+                testResultMsg: '',
+                testLoading: false,
+                tabs: [
+                    { id: 'summary', name: '总结' },
+                    { id: 'characters', name: '主角' },
+                    { id: 'relationships', name: '关系图' },
+                    { id: 'firstsex', name: '首次' },
+                    { id: 'count', name: '统计' },
+                    { id: 'progress', name: '发展' }
+                ],
+
+                init() {
+                    this.$watch('theme', val => localStorage.setItem('theme', val));
+                    this.$watch('currentTab', val => {
+                        if (val === 'relationships' && this.currentAnalysis) {
+                            setTimeout(() => renderRelationshipGraph('relationshipChart', this.currentAnalysis), 50);
+                        }
+                    });
+                    this.scanNovels();
+                    this.restoreAnalysis();
+                    this.log('info', '应用初始化完成');
+                },
+
+                toggleTheme() {
+                    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                },
+
+                log(type, message, data = null) {
+                    const content = document.getElementById('logContent');
+                    const now = new Date().toLocaleTimeString();
+                    const colors = { info: 'text-info', success: 'text-success', error: 'text-error', warning: 'text-warning' };
+                    const entry = document.createElement('div');
+                    entry.className = `p-2 rounded bg-base-300 ${colors[type] || ''}`;
+                    entry.innerHTML = `<span class="opacity-50">[${now}]</span> ${message}${data ? `<pre class="mt-1 text-xs opacity-70 whitespace-pre-wrap">${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>` : ''}`;
+                    content.appendChild(entry);
+                    content.scrollTop = content.scrollHeight;
+                    console.log(`[${type}] ${message}`, data);
+                },
+
+                clearLog() {
+                    document.getElementById('logContent').innerHTML = '';
+                },
+
+                showToast(msg, type = 'info') {
+                    const container = document.getElementById('toastContainer');
+                    const alertClass = { success: 'alert-success', error: 'alert-error', info: 'alert-info', warning: 'alert-warning' };
+                    const toast = document.createElement('div');
+                    toast.className = `alert ${alertClass[type] || 'alert-info'} shadow-lg`;
+                    toast.innerHTML = `<span>${msg}</span>`;
+                    container.appendChild(toast);
+                    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+                },
+
+                async testConnection() {
+                    if (!this.apiUrl || !this.apiKey || !this.modelName) {
+                        this.testResult = 'error';
+                        this.testResultMsg = '请填写完整配置';
+                        return;
+                    }
+                    this.testLoading = true;
+                    this.testResult = '';
+                    this.log('info', `测试连接: ${this.apiUrl}`);
+                    try {
+                        const res = await fetch('/api/test-connection', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content: '', api_url: this.apiUrl, api_key: this.apiKey, model: this.modelName })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.testResult = 'success';
+                            this.testResultMsg = '连接成功';
+                            this.log('success', '连接成功');
+                        } else {
+                            this.testResult = 'error';
+                            this.testResultMsg = data.detail || '连接失败';
+                            this.log('error', '连接失败', data.detail);
+                        }
+                    } catch (e) {
+                        this.testResult = 'error';
+                        this.testResultMsg = e.message;
+                        this.log('error', '连接异常', e.message);
+                    }
+                    this.testLoading = false;
+                },
+
+                saveConfig() {
+                    localStorage.setItem('novel_analyzer_api_url', this.apiUrl);
+                    localStorage.setItem('novel_analyzer_api_key', this.apiKey);
+                    localStorage.setItem('novel_analyzer_model_name', this.modelName);
+                    this.showToast('配置已保存', 'success');
+                    this.settingsOpen = false;
+                },
+
+                async scanNovels() {
+                    this.log('info', '扫描小说目录...');
+                    try {
+                        const res = await fetch('/api/novels');
+                        const data = await res.json();
+                        this.fileStats = `${data.total} 本小说`;
+                        this.log('success', `扫描完成，找到 ${data.total} 本小说`);
+                        this.renderFolderList(data.novels);
+                    } catch (e) {
+                        this.fileStats = '扫描失败';
+                        this.log('error', '扫描失败', e.message);
+                    }
+                },
+
+                renderFolderList(novels) {
+                    const container = document.getElementById('folderList');
+                    container.innerHTML = novels.map(f => `
+                        <div class="collapse bg-base-300 rounded-lg">
+                            <input type="checkbox">
+                            <div class="collapse-title text-sm font-medium flex items-center gap-2 pr-4">
+                                <span>📁</span>
+                                <span class="flex-1 truncate">${f.folder}</span>
+                                <span class="badge badge-sm">${f.files.length}</span>
+                            </div>
+                            <div class="collapse-content space-y-1">
+                                ${f.files.map(file => `
+                                    <div class="p-2 rounded cursor-pointer hover:bg-base-100 text-sm truncate flex items-center gap-2 file-item"
+                                         data-path="${file.path.replace(/\\/g, '\\\\')}" data-name="${file.name}">
+                                        <span>📄</span>
+                                        <span class="truncate">${file.name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    container.querySelectorAll('.file-item').forEach(el => {
+                        el.addEventListener('click', () => this.selectNovel(el.dataset.path, el.dataset.name, el));
+                    });
+                },
+
+                async selectNovel(path, name, element) {
+                    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('bg-primary/20', 'border-l-2', 'border-primary'));
+                    element.classList.add('bg-primary/20', 'border-l-2', 'border-primary');
+                    this.selectedNovel = { path, name };
+                    this.novelTitle = name;
+                    this.analysisComplete = false;
+                    this.errorMsg = '';
+                    this.log('info', `选择小说: ${name}`);
+
+                    try {
+                        const res = await fetch(`/api/novel/${encodeURIComponent(path)}`);
+                        const data = await res.json();
+                        this.currentNovelContent = data.content;
+                        this.log('success', `小说加载成功，字数: ${data.length}`);
+                    } catch (e) {
+                        this.errorMsg = '读取小说失败: ' + e.message;
+                        this.log('error', '读取失败', e.message);
+                    }
+                },
+
+                async analyzeNovel() {
+                    if (!this.selectedNovel || !this.currentNovelContent) {
+                        this.errorMsg = '请先选择一本小说';
+                        return;
+                    }
+                    if (!this.apiUrl || !this.apiKey || !this.modelName) {
+                        this.errorMsg = '请先在设置中填写API配置';
+                        return;
+                    }
+
+                    this.errorMsg = '';
+                    this.loading = true;
+                    this.log('info', `开始分析: ${this.selectedNovel.name}`);
+
+                    try {
+                        const res = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                content: this.currentNovelContent,
+                                api_url: this.apiUrl,
+                                api_key: this.apiKey,
+                                model: this.modelName
+                            })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.detail || '分析失败');
+
+                        this.log('success', '分析完成');
+                        this.currentAnalysis = data.analysis;
+                        window.currentAnalysis = data.analysis;
+                        this.saveAnalysisToStorage(data.analysis);
+                        this.renderAllData(data.analysis);
+                        this.analysisComplete = true;
+                        this.currentTab = 'summary';
+                        this.showToast('分析完成', 'success');
+                    } catch (e) {
+                        this.errorMsg = '分析失败: ' + e.message;
+                        this.log('error', '分析失败', e.message);
+                    }
+                    this.loading = false;
+                },
+
+                renderAllData(data) {
+                    const chars = data.characters || [];
+                    const males = chars.filter(c => c.gender === 'male').length;
+                    const females = chars.filter(c => c.gender === 'female').length;
+                    const novelInfo = data.novel_info || {};
+                    const wordCount = this.currentNovelContent ? this.currentNovelContent.length : 0;
+
+                    document.getElementById('quickStats').innerHTML = `
+                        <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-4">
+                            <div class="stat">
+                                <div class="stat-title">亲密次数</div>
+                                <div class="stat-value text-primary">${data.sex_scenes?.total_count || 0}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-title">关系对</div>
+                                <div class="stat-value text-secondary">${data.relationships?.length || 0}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-title">章节数</div>
+                                <div class="stat-value">${novelInfo.chapter_count || '-'}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-title">字数</div>
+                                <div class="stat-value">${wordCount > 10000 ? (wordCount / 10000).toFixed(1) + '万' : wordCount}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    renderRelationshipSummary(data);
+                    renderCharacters(data);
+                    renderFirstSexScene(data);
+                    renderSexSceneCount(data);
+                    renderRelationshipProgress(data);
+                    setTimeout(() => renderRelationshipGraph('relationshipChart', data), 100);
+                },
+
+                saveAnalysisToStorage(analysis) {
+                    try {
+                        localStorage.setItem('novel_analyzer_data', JSON.stringify({
+                            analysis,
+                            novel: this.selectedNovel,
+                            timestamp: Date.now()
+                        }));
+                    } catch (e) {
+                        this.log('error', '保存失败', e.message);
+                    }
+                },
+
+                restoreAnalysis() {
+                    try {
+                        const saved = localStorage.getItem('novel_analyzer_data');
+                        if (!saved) return;
+                        const data = JSON.parse(saved);
+                        if (data.analysis && data.novel) {
+                            this.currentAnalysis = data.analysis;
+                            window.currentAnalysis = data.analysis;
+                            this.selectedNovel = data.novel;
+                            this.novelTitle = data.novel.name;
+                            this.analysisComplete = true;
+                            this.renderAllData(data.analysis);
+                            this.showToast('已恢复上次分析结果', 'info');
+                            this.log('info', '已恢复上次分析结果');
+                        }
+                    } catch (e) {
+                        this.log('error', '恢复失败', e.message);
+                    }
+                },
+
+                clearAnalysis() {
+                    localStorage.removeItem('novel_analyzer_data');
+                    this.currentAnalysis = null;
+                    window.currentAnalysis = null;
+                    this.selectedNovel = null;
+                    this.novelTitle = '选择一本小说';
+                    this.analysisComplete = false;
+                    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('bg-primary/20', 'border-l-2', 'border-primary'));
+                    ['quickStats', 'relationshipSummary', 'mainCharacters', 'firstSexScene', 'sexSceneCount', 'relationshipProgress'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerHTML = '';
+                    });
+                    document.getElementById('relationshipChart').innerHTML = '';
+                    this.showToast('已清空分析结果', 'info');
+                    this.settingsOpen = false;
+                    this.log('info', '已清空所有数据');
+                },
+
+                doExport() {
+                    if (!this.currentAnalysis || !this.selectedNovel) {
+                        this.errorMsg = '没有可导出的数据';
+                        return;
+                    }
+                    exportReport(this.currentAnalysis, this.selectedNovel.name);
+                    this.showToast('报告已导出', 'success');
+                }
+            };
+        }
+    </script>
+</body>
+</html>
