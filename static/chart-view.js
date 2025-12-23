@@ -54,6 +54,12 @@ function renderQuickStats(container, stats) {
     container.insertAdjacentHTML('beforeend', buildQuickStatsHtml(stats));
 }
 
+function renderThunderzones(container, data) {
+    if (!container) return;
+    const html = buildThunderzonesHtml(data?.analysis);
+    container.innerHTML = html;
+}
+
 // 获取DaisyUI主题颜色
 function getThemeColors() {
     const style = getComputedStyle(document.documentElement);
@@ -594,6 +600,109 @@ function buildRelationshipSummaryHtml(data) {
     `;
 }
 
+function buildThunderzonesHtml(analysisData) {
+    const thunderzones = Array.isArray(analysisData?.thunderzones) ? analysisData.thunderzones : [];
+
+    if (thunderzones.length === 0) {
+        return `
+            <div class="empty-state">
+                <div class="empty-icon">✅</div>
+                <div class="empty-text">未检测到雷点</div>
+            </div>
+        `;
+    }
+
+    const normalizeSeverity = (value) => {
+        const raw = String(value ?? '').trim();
+        const lower = raw.toLowerCase();
+        if (raw === '高' || lower === 'high') return '高';
+        if (raw === '中' || lower === 'medium') return '中';
+        if (raw === '低' || lower === 'low') return '低';
+        return raw || '低';
+    };
+
+    const severityWeight = (value) => {
+        const severity = normalizeSeverity(value);
+        if (severity === '高') return 0;
+        if (severity === '中') return 1;
+        if (severity === '低') return 2;
+        return 99;
+    };
+
+    const normalizeTypeKey = (value) => {
+        const raw = String(value ?? '').trim();
+        if (!raw) return '其他';
+        const head = raw.split('/')[0].split('(')[0].trim();
+        return head || raw;
+    };
+
+    const sorted = [...thunderzones].sort((a, b) => severityWeight(a?.severity) - severityWeight(b?.severity));
+
+    const typeIcons = {
+        '绿帽': '🟢',
+        'NTR': '🔴',
+        '女性舔狗': '🟡',
+        '恶堕': '🟣',
+        '其他': '⚪',
+    };
+
+    const severityColors = {
+        '高': 'badge-error',
+        '中': 'badge-warning',
+        '低': 'badge-info',
+    };
+
+    const summary = escapeHtml(analysisData?.thunderzone_summary || '检测到雷点');
+
+    let html = `
+        <div class="summary-section">
+            <div class="summary-title">雷点概览</div>
+            <p class="summary-content">${summary}</p>
+        </div>
+
+        <div class="thunderzone-list">
+    `;
+
+    for (const thunderzone of sorted) {
+        const typeRaw = thunderzone?.type;
+        const typeKey = normalizeTypeKey(typeRaw);
+        const severityNormalized = normalizeSeverity(thunderzone?.severity);
+
+        const type = escapeHtml(typeRaw || typeKey || '未知');
+        const severity = escapeHtml(severityNormalized || '低');
+        const description = escapeHtml(thunderzone?.description || '');
+        const characters = Array.isArray(thunderzone?.involved_characters) ? thunderzone.involved_characters : [];
+        const charactersText = characters.map((c) => escapeHtml(c)).join(', ');
+        const location = escapeHtml(thunderzone?.chapter_location || '');
+        const context = thunderzone?.relationship_context ? escapeHtml(thunderzone.relationship_context) : '';
+
+        const icon = typeIcons[typeKey] || '⚪';
+        const badgeClass = severityColors[severityNormalized] || 'badge-ghost';
+        const cardClass = severityNormalized === '高' ? 'thunderzone-high' : '';
+
+        html += `
+            <div class="thunderzone-card ${cardClass}">
+                <div class="thunderzone-header">
+                    <span class="thunderzone-icon">${icon}</span>
+                    <span class="thunderzone-type">${type}</span>
+                    <span class="badge ${badgeClass}">${severity}</span>
+                </div>
+                <div class="thunderzone-body">
+                    <p class="thunderzone-desc">${description}</p>
+                    <div class="thunderzone-meta">
+                        <span class="meta-item">👥 ${charactersText || '未指定'}</span>
+                        <span class="meta-item">📍 ${location || '未知位置'}</span>
+                    </div>
+                    ${context ? `<p class="thunderzone-context">🔗 关系背景: ${context}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
 function renderRelationshipSummary(data) {
     const container = document.getElementById('relationshipSummary');
     if (!container) return;
@@ -674,7 +783,7 @@ function exportReport(analysis, novelName, opts = {}) {
 .progress-chapter { font-size: 0.75rem; opacity: 0.6; margin-bottom: 0.25rem; }
 .progress-stage { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
 .progress-desc { font-size: 0.875rem; opacity: 0.8; line-height: 1.5; }
-.summary-section { background: oklch(var(--b2)); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius); margin-top: 1rem; }
+.summary-section { background: oklch(var(--b2)); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius); margin-top: 1rem; margin-bottom: 1rem; }
 .summary-title { font-size: 0.875rem; font-weight: 600; color: oklch(var(--p)); margin-bottom: 0.75rem; }
 .summary-content { font-size: 0.9375rem; opacity: 0.8; line-height: 1.8; }
 .novel-meta-section { background: oklch(var(--b2)); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius); margin-bottom: 1rem; }
@@ -700,12 +809,27 @@ function exportReport(analysis, novelName, opts = {}) {
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; opacity: 0.5; }
 .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
 .empty-text { font-size: 1rem; }
+.thunderzone-list { display: flex; flex-direction: column; gap: 1rem; }
+.thunderzone-card { background: oklch(var(--b2)); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; transition: all 0.2s; }
+.thunderzone-card:hover { border-color: oklch(var(--bc) / 0.2); transform: translateY(-2px); box-shadow: 0 4px 12px oklch(var(--bc) / 0.1); }
+.thunderzone-card.thunderzone-high { border-color: oklch(var(--er) / 0.5); background: oklch(var(--er) / 0.05); }
+.thunderzone-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.thunderzone-icon { font-size: 1.5rem; line-height: 1; }
+.thunderzone-type { font-size: 1rem; font-weight: 600; color: oklch(var(--bc)); }
+.thunderzone-body { display: flex; flex-direction: column; gap: 0.75rem; }
+.thunderzone-desc { font-size: 0.9375rem; opacity: 0.8; line-height: 1.6; margin: 0; }
+.thunderzone-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; opacity: 0.7; }
+.meta-item { display: flex; align-items: center; gap: 0.25rem; }
+.thunderzone-context { font-size: 0.875rem; opacity: 0.6; font-style: italic; margin: 0; padding-top: 0.5rem; border-top: 1px solid oklch(var(--bc) / 0.1); }
 @media (max-width: 768px) {
     .char-grid { grid-template-columns: 1fr; }
     .novel-meta-grid { grid-template-columns: 1fr; }
     .char-names-grid { grid-template-columns: 1fr; }
     .quick-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .quick-stat-value { font-size: 1.75rem; }
+    .thunderzone-meta { flex-direction: column; gap: 0.5rem; }
+    .thunderzone-header { flex-wrap: wrap; }
+    .thunderzone-card { padding: 1rem; }
 	}
     `;
 
@@ -717,6 +841,7 @@ function exportReport(analysis, novelName, opts = {}) {
     const firstSexSceneHtml = buildFirstSexSceneHtml(analysis);
     const sexSceneCountHtml = buildSexSceneCountHtml(analysis);
     const relationshipProgressHtml = buildRelationshipProgressHtml(analysis);
+    const thunderzonesHtml = buildThunderzonesHtml(analysis);
 
     const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-theme="${theme}">
@@ -737,7 +862,8 @@ function exportReport(analysis, novelName, opts = {}) {
     currentTab: 'summary',
     tabs: [
         { id: 'summary', name: '总结' },
-        { id: 'characters', name: '主角' },
+        { id: 'thunderzones', name: '雷点' },
+        { id: 'characters', name: '角色' },
         { id: 'relationships', name: '关系图' },
         { id: 'firstsex', name: '首次' },
         { id: 'count', name: '统计' },
@@ -769,6 +895,9 @@ function exportReport(analysis, novelName, opts = {}) {
                 <div x-show="currentTab === 'summary'" x-cloak>
                     <div id="quickStats">${quickStatsHtml}</div>
                     <div id="relationshipSummary">${summaryHtml}</div>
+                </div>
+                <div x-show="currentTab === 'thunderzones'" x-cloak>
+                    <div id="thunderzoneSection">${thunderzonesHtml}</div>
                 </div>
                 <div x-show="currentTab === 'characters'" x-cloak>
                     <div id="mainCharacters">${charactersHtml}</div>

@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body class="min-h-screen bg-base-100">
     <!-- 顶栏 -->
@@ -80,6 +80,10 @@
                 <div x-show="currentTab === 'summary'" x-cloak>
                     <div id="quickStats"></div>
                     <div id="relationshipSummary"></div>
+                </div>
+                <!-- 雷点 -->
+                <div x-show="currentTab === 'thunderzones'" x-cloak>
+                    <div id="thunderzoneSection"></div>
                 </div>
                 <!-- 主角 -->
                 <div x-show="currentTab === 'characters'" x-cloak>
@@ -191,7 +195,8 @@
                 testLoading: false,
                 tabs: [
                     { id: 'summary', name: '总结' },
-                    { id: 'characters', name: '主角' },
+                    { id: 'thunderzones', name: '雷点' },
+                    { id: 'characters', name: '角色' },
                     { id: 'relationships', name: '关系图' },
                     { id: 'firstsex', name: '首次' },
                     { id: 'count', name: '统计' },
@@ -389,12 +394,14 @@
                         this.analysisComplete = true;
                         this.currentTab = 'summary';
                         this.showToast('分析完成', 'success');
+
                     } catch (e) {
                         this.errorMsg = '分析失败: ' + e.message;
                         this.log('error', '分析失败', e.message);
                     }
                     this.loading = false;
                 },
+
 
                 renderAllData(data) {
                     const chars = data.characters || [];
@@ -423,6 +430,7 @@
                     renderFirstSexScene(data);
                     renderSexSceneCount(data);
                     renderRelationshipProgress(data);
+                    renderThunderzones(document.getElementById('thunderzoneSection'), { analysis: data });
                     setTimeout(() => renderRelationshipGraph('relationshipChart', data), 100);
                 },
 
@@ -466,7 +474,7 @@
                     this.novelTitle = '选择一本小说';
                     this.analysisComplete = false;
                     document.querySelectorAll('.file-item').forEach(el => el.classList.remove('bg-primary/20', 'border-l-2', 'border-primary'));
-                    ['quickStats', 'relationshipSummary', 'mainCharacters', 'firstSexScene', 'sexSceneCount', 'relationshipProgress'].forEach(id => {
+                    ['quickStats', 'relationshipSummary', 'thunderzoneSection', 'mainCharacters', 'firstSexScene', 'sexSceneCount', 'relationshipProgress'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.replaceChildren();
                     });

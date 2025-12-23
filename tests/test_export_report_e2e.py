@@ -167,7 +167,7 @@ def test_export_report_matches_web_ui(server_url, analysis_full, tmp_path, theme
 
         tab_expectations = [
             ("总结", "#quickStats"),
-            ("主角", "#mainCharacters"),
+            ("角色", "#mainCharacters"),
             ("关系图", "#relationshipChart"),
             ("首次", "#firstSexScene"),
             ("统计", "#sexSceneCount"),
@@ -215,8 +215,8 @@ def test_empty_state_is_safe_to_export(server_url, analysis_empty, tmp_path):
 
         export_page = context.new_page()
         export_page.goto(export_path.as_uri(), wait_until="domcontentloaded")
-        export_page.locator("button:has-text('主角')").click()
-        export_page.locator(".empty-state").first.wait_for(state="visible", timeout=10_000)
+        export_page.locator("button:has-text('角色')").click()
+        export_page.locator("#mainCharacters .empty-state").first.wait_for(state="visible", timeout=10_000)
 
         context.close()
         browser.close()
