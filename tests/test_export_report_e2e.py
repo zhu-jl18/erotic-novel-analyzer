@@ -87,7 +87,7 @@ def server_url(tmp_path_factory) -> str:
 
 
 def _select_first_novel(page) -> None:
-    page.locator("div.dropdown > div[role='button']").click()
+    page.locator("div.dropdown.w-full > div[role='button']").click()
     page.locator(".file-item").first.wait_for(state="visible", timeout=10_000)
     page.locator(".file-item").first.click()
 
@@ -104,8 +104,8 @@ def _stub_analyze(page, analysis: dict) -> None:
 
 
 def _run_analysis(page) -> None:
-    page.locator("button.btn-primary").click()
-    page.locator("span.badge.badge-success:has-text('分析完成')").wait_for(state="visible", timeout=30_000)
+    page.locator("main .empty-state button:has-text('开始分析')").click()
+    page.locator("#toastContainer div:has-text('分析完成')").wait_for(state="visible", timeout=30_000)
 
 
 def _capture_modules_inner_html(page) -> dict:
@@ -139,7 +139,7 @@ def test_export_report_matches_web_ui(server_url, analysis_full, tmp_path, theme
         page.goto(server_url, wait_until="domcontentloaded")
 
         if theme == "light":
-            page.locator("label.swap").click()
+            page.locator("button[title='切换主题']").click()
             page.wait_for_function("() => document.documentElement.getAttribute('data-theme') === 'light'")
 
         _select_first_novel(page)

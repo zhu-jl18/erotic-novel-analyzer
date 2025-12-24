@@ -259,7 +259,7 @@ function renderRelationshipGraph(containerId, data) {
         line.setAttribute('y2', target.y);
         line.setAttribute('stroke', colors.primary);
         line.setAttribute('stroke-width', '2');
-        line.setAttribute('stroke-opacity', '0.6');
+        line.setAttribute('stroke-opacity', '0.8');
         svg.appendChild(line);
 
         // 关系标签 - 沿线条方向偏移避免堆叠
@@ -294,7 +294,7 @@ function renderRelationshipGraph(containerId, data) {
         text.setAttribute('y', labelY + 3);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('fill', colors.textSecondary);
-        text.setAttribute('font-size', '10');
+        text.setAttribute('font-size', '11');
         text.textContent = rel.type;
         svg.appendChild(text);
     });
@@ -310,7 +310,7 @@ function renderRelationshipGraph(containerId, data) {
         outer.setAttribute('cy', node.y);
         outer.setAttribute('r', '45');
         outer.setAttribute('fill', node.color);
-        outer.setAttribute('fill-opacity', '0.2');
+        outer.setAttribute('fill-opacity', '0.25');
         g.appendChild(outer);
 
         // 节点圆
@@ -321,7 +321,7 @@ function renderRelationshipGraph(containerId, data) {
         circle.setAttribute('fill', node.color);
         circle.setAttribute('stroke', colors.textPrimary);
         circle.setAttribute('stroke-width', '2');
-        circle.setAttribute('stroke-opacity', '0.3');
+        circle.setAttribute('stroke-opacity', '0.5');
         g.appendChild(circle);
 
         // 性别标签
@@ -342,7 +342,7 @@ function renderRelationshipGraph(containerId, data) {
         name.setAttribute('y', node.y + 55);
         name.setAttribute('text-anchor', 'middle');
         name.setAttribute('fill', colors.textPrimary);
-        name.setAttribute('font-size', '12');
+        name.setAttribute('font-size', '13');
         name.textContent = node.name;
         g.appendChild(name);
 
