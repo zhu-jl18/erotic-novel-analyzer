@@ -42,12 +42,6 @@ class AnalyzeRequest(BaseModel):
     content: str
 
 
-class VerifyRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    content: str
-    original_analysis: Dict[str, Any]
-
-
 def _get_llm_config() -> tuple[str, str, str]:
     api_url = os.getenv("API_BASE_URL", "").strip()
     api_key = os.getenv("API_KEY", "").strip()
@@ -115,25 +109,26 @@ def call_llm_with_response(
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": temperature,
+                    "stream": True,
                 },
                 timeout=timeout,
+                stream=True,
             )
 
-            last_raw_response = (response.text or "")[:3000]
-
-            if response.status_code in [502, 503, 504]:
-                wait_time = 5 * (attempt + 1)
-                last_error = f"网关超时({response.status_code})"
-                time.sleep(wait_time)
-                continue
-
-            if response.status_code == 429:
-                wait_time = 5 * (attempt + 1)
-                last_error = "请求频繁(429)"
-                time.sleep(wait_time)
-                continue
-
             if response.status_code != 200:
+                last_raw_response = (response.text or "")[:3000]
+                if response.status_code in [502, 503, 504]:
+                    wait_time = 5 * (attempt + 1)
+                    last_error = f"网关超时({response.status_code})"
+                    time.sleep(wait_time)
+                    continue
+
+                if response.status_code == 429:
+                    wait_time = 5 * (attempt + 1)
+                    last_error = "请求频繁(429)"
+                    time.sleep(wait_time)
+                    continue
+
                 error_msg = f"API错误: {response.status_code}"
                 if response.status_code == 401:
                     error_msg = "API密钥无效"
@@ -145,9 +140,24 @@ def call_llm_with_response(
                     error_msg = "内容审核拦截(421)"
                 raise LLMCallError(error_msg, last_raw_response)
 
-            result = response.json()
-            message = (result.get("choices") or [{}])[0].get("message") or {}
-            content = message.get("content", "") or message.get("reasoning_content", "") or ""
+            content = ""
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                line_text = line.decode("utf-8").strip()
+                if line_text.startswith("data: "):
+                    data_str = line_text[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        data_json = json.loads(data_str)
+                        delta = data_json.get("choices", [{}])[0].get("delta", {})
+                        chunk = delta.get("content", "") or delta.get("reasoning_content", "") or ""
+                        content += chunk
+                    except json.JSONDecodeError:
+                        continue
+
+            last_raw_response = content[:3000]
 
             if not content or len(content.strip()) < 10:
                 raise LLMCallError("返回内容过短", last_raw_response)
@@ -168,202 +178,6 @@ def call_llm_with_response(
     raise LLMCallError(last_error or "调用失败", last_raw_response)
 
 
-def merge_analysis_results(original: Dict[str, Any], verification: Dict[str, Any]) -> Dict[str, Any]:
-    merged = copy.deepcopy(original or {})
-
-    def norm_text(value: Any) -> str:
-        return str(value or "").strip()
-
-    def norm_participants(value: Any) -> tuple[str, ...]:
-        if not isinstance(value, list):
-            return tuple()
-        items = [norm_text(x) for x in value if norm_text(x)]
-        return tuple(sorted(set(items)))
-
-    def better_value(old: Any, new: Any) -> Any:
-        if old is None or old == "" or old == [] or old == {}:
-            return new
-        if new is None or new == "" or new == [] or new == {}:
-            return old
-        if isinstance(old, str) and isinstance(new, str):
-            return new if len(new.strip()) > len(old.strip()) else old
-        if isinstance(old, (int, float)) and isinstance(new, (int, float)):
-            return new if new > old else old
-        if isinstance(old, list) and isinstance(new, list):
-            return new if len(new) > len(old) else old
-        if isinstance(old, dict) and isinstance(new, dict):
-            return new if len(new.keys()) > len(old.keys()) else old
-        return old
-
-    def merge_dict_inplace(target: Dict[str, Any], incoming: Dict[str, Any]) -> None:
-        for k, v in incoming.items():
-            target[k] = better_value(target.get(k), v)
-
-    if not isinstance(merged, dict):
-        return {}
-
-    merged.setdefault("characters", [])
-    if not isinstance(merged["characters"], list):
-        merged["characters"] = []
-
-    existing_chars: Dict[str, Dict[str, Any]] = {}
-    for c in merged["characters"]:
-        if isinstance(c, dict):
-            name = norm_text(c.get("name"))
-            if name:
-                existing_chars[name] = c
-
-    for c in (verification or {}).get("missing_characters") or []:
-        if not isinstance(c, dict):
-            continue
-        name = norm_text(c.get("name"))
-        if not name:
-            continue
-        if name not in existing_chars:
-            merged["characters"].append(c)
-            existing_chars[name] = c
-        else:
-            merge_dict_inplace(existing_chars[name], c)
-
-    merged.setdefault("relationships", [])
-    if not isinstance(merged["relationships"], list):
-        merged["relationships"] = []
-
-    existing_rels: Dict[tuple[str, str], Dict[str, Any]] = {}
-    for r in merged["relationships"]:
-        if isinstance(r, dict):
-            key = (norm_text(r.get("from")), norm_text(r.get("to")))
-            if key[0] and key[1]:
-                existing_rels[key] = r
-
-    for r in (verification or {}).get("missing_relationships") or []:
-        if not isinstance(r, dict):
-            continue
-        key = (norm_text(r.get("from")), norm_text(r.get("to")))
-        if not key[0] or not key[1]:
-            continue
-        if key not in existing_rels:
-            merged["relationships"].append(r)
-            existing_rels[key] = r
-        else:
-            merge_dict_inplace(existing_rels[key], r)
-
-    merged.setdefault("first_sex_scenes", [])
-    if not isinstance(merged["first_sex_scenes"], list):
-        merged["first_sex_scenes"] = []
-
-    existing_first: Dict[tuple[str, ...], Dict[str, Any]] = {}
-    for s in merged["first_sex_scenes"]:
-        if isinstance(s, dict):
-            key = norm_participants(s.get("participants"))
-            if key:
-                existing_first[key] = s
-
-    for s in (verification or {}).get("missing_first_sex_scenes") or []:
-        if not isinstance(s, dict):
-            continue
-        key = norm_participants(s.get("participants"))
-        if not key:
-            continue
-        if key not in existing_first:
-            merged["first_sex_scenes"].append(s)
-            existing_first[key] = s
-        else:
-            merge_dict_inplace(existing_first[key], s)
-
-    sex_scenes = merged.get("sex_scenes") or {}
-    if not isinstance(sex_scenes, dict):
-        sex_scenes = {}
-    sex_scenes.setdefault("scenes", [])
-    if not isinstance(sex_scenes["scenes"], list):
-        sex_scenes["scenes"] = []
-
-    def norm_scene_key(scene: Dict[str, Any]) -> tuple[str, tuple[str, ...]]:
-        return (norm_text(scene.get("chapter")), norm_participants(scene.get("participants")))
-
-    existing_scenes: Dict[tuple[str, tuple[str, ...]], Dict[str, Any]] = {}
-    for s in sex_scenes["scenes"]:
-        if isinstance(s, dict):
-            key = norm_scene_key(s)
-            if key[0] and key[1]:
-                existing_scenes[key] = s
-
-    for s in (verification or {}).get("missing_sex_scenes") or []:
-        if not isinstance(s, dict):
-            continue
-        key = norm_scene_key(s)
-        if not key[0] or not key[1]:
-            continue
-        if key not in existing_scenes:
-            sex_scenes["scenes"].append(s)
-            existing_scenes[key] = s
-        else:
-            merge_dict_inplace(existing_scenes[key], s)
-
-    original_total = sex_scenes.get("total_count", 0)
-    try:
-        original_total_int = int(original_total)
-    except Exception:
-        original_total_int = 0
-    sex_scenes["total_count"] = max(original_total_int, len(sex_scenes["scenes"]))
-    merged["sex_scenes"] = sex_scenes
-
-    merged.setdefault("evolution", [])
-    if not isinstance(merged["evolution"], list):
-        merged["evolution"] = []
-
-    existing_evo: Dict[str, Dict[str, Any]] = {}
-    for e in merged["evolution"]:
-        if isinstance(e, dict):
-            key = norm_text(e.get("chapter"))
-            if key:
-                existing_evo[key] = e
-
-    for e in (verification or {}).get("missing_evolution") or []:
-        if not isinstance(e, dict):
-            continue
-        key = norm_text(e.get("chapter"))
-        if not key:
-            continue
-        if key not in existing_evo:
-            merged["evolution"].append(e)
-            existing_evo[key] = e
-        else:
-            merge_dict_inplace(existing_evo[key], e)
-
-    merged.setdefault("thunderzones", [])
-    if not isinstance(merged["thunderzones"], list):
-        merged["thunderzones"] = []
-
-    def norm_th_key(t: Dict[str, Any]) -> tuple[str, str]:
-        return (norm_text(t.get("type")), norm_text(t.get("chapter_location")))
-
-    existing_th: Dict[tuple[str, str], Dict[str, Any]] = {}
-    for t in merged["thunderzones"]:
-        if isinstance(t, dict):
-            key = norm_th_key(t)
-            if key[0] and key[1]:
-                existing_th[key] = t
-
-    for t in (verification or {}).get("missing_thunderzones") or []:
-        if not isinstance(t, dict):
-            continue
-        key = norm_th_key(t)
-        if not key[0] or not key[1]:
-            continue
-        if key not in existing_th:
-            merged["thunderzones"].append(t)
-            existing_th[key] = t
-        else:
-            merge_dict_inplace(existing_th[key], t)
-
-    return merged
-
-
-def _safe_list(value: Any) -> list:
-    return value if isinstance(value, list) else []
-
-
 def _ensure_analysis_defaults(analysis: Dict[str, Any]) -> Dict[str, Any]:
     """Guarantee required keys exist with sensible empty defaults to keep UI stable."""
     if not isinstance(analysis, dict):
@@ -372,6 +186,9 @@ def _ensure_analysis_defaults(analysis: Dict[str, Any]) -> Dict[str, Any]:
     analysis.setdefault("novel_info", {})
     if not isinstance(analysis["novel_info"], dict):
         analysis["novel_info"] = {}
+    analysis["novel_info"].setdefault("world_tags", [])
+    if not isinstance(analysis["novel_info"]["world_tags"], list):
+        analysis["novel_info"]["world_tags"] = []
 
     analysis.setdefault("characters", [])
     if not isinstance(analysis["characters"], list):
@@ -531,18 +348,21 @@ def _validate_and_fix_analysis(analysis: Dict[str, Any]) -> tuple[Dict[str, Any]
     if not isinstance(data.get("novel_info"), dict):
         data["novel_info"] = {}
         errors.append("novel_info not object -> reset")
+    else:
+        novel_info = data["novel_info"]
+        if not isinstance(novel_info.get("world_tags"), list):
+            novel_info["world_tags"] = []
+            errors.append("novel_info.world_tags not list -> reset")
 
     return data, errors
 
 
-def _reconcile_entities(analysis: Dict[str, Any]) -> tuple[Dict[str, Any], list[str], dict]:
+def _reconcile_entities(analysis: Dict[str, Any]) -> tuple[Dict[str, Any], list[str]]:
     """
     Cross-check participants vs characters/relationships; auto-add missing pieces.
-    Returns (analysis, errors, stats)
-    stats keys: added_characters, added_relationships
+    Returns (analysis, errors)
     """
     errors: list[str] = []
-    stats = {"added_characters": 0, "added_relationships": 0}
     data = copy.deepcopy(analysis or {})
 
     characters = data.get("characters") or []
@@ -586,7 +406,6 @@ def _reconcile_entities(analysis: Dict[str, Any]) -> tuple[Dict[str, Any], list[
                 "sexual_preferences": ""
             })
             name_set.add(p)
-            stats["added_characters"] += 1
             errors.append(f"added missing character: {p}")
 
     # Build relationship keys to avoid duplicates (undirected)
@@ -627,12 +446,11 @@ def _reconcile_entities(analysis: Dict[str, Any]) -> tuple[Dict[str, Any], list[
                     "start_way": "性场景自动补全",
                     "description": "auto-added from sex scene"
                 })
-                stats["added_relationships"] += 1
                 errors.append(f"added missing relationship: {a} - {b}")
 
     data["characters"] = characters
     data["relationships"] = relationships
-    return data, errors, stats
+    return data, errors
 
 
 
@@ -744,9 +562,6 @@ def read_novel(path: str):
     try:
         content = full_path.read_text(encoding="utf-8", errors="ignore")
 
-        if len(content) > 80000:
-            content = content[:80000] + "\n\n... (内容已截断，分析可能不完整)"
-
         return {
             "name": full_path.name,
             "path": str(Path(path).as_posix()),
@@ -806,6 +621,7 @@ As a professional literary analyst specializing in adult fiction, analyze this n
 ### 0. NOVEL METADATA
 Extract basic novel information:
 - World setting/background (genre, time period, universe type)
+- World tags: short tags array (e.g., "现代都市", "校园", "豪门", "修仙", "科幻")
 - Estimated chapter count (count chapter markers like "第X章", "Chapter X", etc.)
 - Completion status (based on ending - does story conclude or feel unfinished?)
 
@@ -888,6 +704,7 @@ Severity 判定标准:
 {{
   "novel_info": {{
     "world_setting": "",
+    "world_tags": [],
     "chapter_count": 0,
     "is_completed": false,
     "completion_note": ""
@@ -966,142 +783,13 @@ Return the schema skeleton EXACTLY (with empty arrays/strings) and nothing else.
 
     # Local schema validation & reconciliation only (single LLM call)
     analysis, _ = _validate_and_fix_analysis(analysis)
-    analysis, _, _ = _reconcile_entities(analysis)
+    analysis, _ = _reconcile_entities(analysis)
     analysis, _ = _validate_and_fix_analysis(analysis)
 
     if not analysis.get("characters"):
         raise HTTPException(status_code=422, detail="分析失败: 无有效角色（模型输出无法修复）")
     return {"analysis": analysis}
 
-
-def _perform_verification(api_url: str, api_key: str, model: str, *, content: str, original: Dict[str, Any], raise_on_error: bool = True):
-    """Run LLM-based completeness/consistency review. Can soft-fail without raising."""
-    content_clean = (content or "").strip()
-    if not content_clean:
-        msg = "content不能为空"
-        if raise_on_error:
-            raise HTTPException(status_code=400, detail=msg)
-        return original, {}, msg
-
-    if not isinstance(original, dict) or not original:
-        msg = "original_analysis不能为空"
-        if raise_on_error:
-            raise HTTPException(status_code=400, detail=msg)
-        return original, {}, msg
-
-    existing_characters = []
-    for c in original.get("characters") or []:
-        if isinstance(c, dict):
-            name = str(c.get("name") or "").strip()
-            if name:
-                existing_characters.append(name)
-
-    existing_relationships = []
-    for r in original.get("relationships") or []:
-        if isinstance(r, dict):
-            frm = str(r.get("from") or "").strip()
-            to = str(r.get("to") or "").strip()
-            if frm and to:
-                existing_relationships.append({"from": frm, "to": to})
-
-    verify_prompt = f"""
-You are reviewing an existing novel analysis for completeness.
-
-CRITICAL: The original analysis may have missed characters, especially:
-1. First-person narrators ("我", "主角") - these ARE characters and MUST be included
-2. Male characters who participate in sexual activities
-3. Characters only mentioned by role (e.g., "丈夫", "男友", "老公")
-4. Missing relationship pairs and missing scenes
-
-Original analysis found these characters (names only): {json.dumps(existing_characters, ensure_ascii=False)}
-Original analysis found these relationships (pairs): {json.dumps(existing_relationships, ensure_ascii=False)}
-
-Your task:
-1. Identify ANY sexual participants that are MISSING from the original character list
-2. Identify ANY sexual relationships that are MISSING from the original relationships list
-3. For first-person narratives, the narrator IS a character - identify their name/alias and gender
-4. Output ONLY the missing items (do NOT repeat existing items)
-
-Output JSON ONLY (missing items only). If nothing is missing, return empty arrays and corrections as "".
-
-```json
-{{
-  "missing_characters": [],
-  "missing_relationships": [],
-  "missing_first_sex_scenes": [],
-  "missing_sex_scenes": [],
-  "missing_evolution": [],
-  "missing_thunderzones": [],
-  "corrections": ""
-}}
-```
-
-Novel Content:
-
-{content_clean}
-"""
-
-    verification = {}
-    last_error = None
-    raw_response = None
-
-    try:
-        verify_text, _raw = call_llm_with_response(api_url, api_key, model, verify_prompt, temperature=0.3)
-        verification = extract_json_from_response(verify_text) or {}
-        if not isinstance(verification, dict):
-            verification = {}
-    except LLMCallError as e:
-        last_error = str(e)
-        raw_response = e.raw_response
-    except Exception as e:
-        last_error = str(e)
-
-    if not verification and last_error:
-        error_msg = f"校验失败: {last_error}"
-        if raw_response and DEBUG:
-            error_msg += f"\n\n原始响应:\n{raw_response[:2000]}"
-        if raise_on_error:
-            raise HTTPException(status_code=422, detail=error_msg)
-        return original, {}, error_msg
-
-    merged = merge_analysis_results(original, verification)
-    return merged, verification, None
-
-
-@app.post("/api/verify")
-def verify_analysis(req: VerifyRequest):
-    api_url, api_key, model = _get_llm_config()
-    merged, verification, error_msg = _perform_verification(
-        api_url,
-        api_key,
-        model,
-        content=req.content,
-        original=req.original_analysis,
-        raise_on_error=True,
-    )
-    merged, val_errors = _validate_and_fix_analysis(merged)
-    merged, recon_errors, recon_stats = _reconcile_entities(merged)
-    merged, val_errors2 = _validate_and_fix_analysis(merged)
-
-    if not merged.get("characters"):
-        raise HTTPException(status_code=422, detail="校验失败: 无有效角色（模型输出无法修复）")
-
-    validation_errors = val_errors + recon_errors + val_errors2
-
-    return {
-        "missing_characters": _safe_list(verification.get("missing_characters")),
-        "missing_relationships": _safe_list(verification.get("missing_relationships")),
-        "missing_first_sex_scenes": _safe_list(verification.get("missing_first_sex_scenes")),
-        "missing_sex_scenes": _safe_list(verification.get("missing_sex_scenes")),
-        "missing_evolution": _safe_list(verification.get("missing_evolution")),
-        "missing_thunderzones": _safe_list(verification.get("missing_thunderzones")),
-        "corrections": str(verification.get("corrections") or "").strip(),
-        "merged_analysis": merged,
-        "error": error_msg,
-        "validation_errors": validation_errors,
-        "added_characters": recon_stats.get("added_characters", 0),
-        "added_relationships": recon_stats.get("added_relationships", 0),
-    }
 
 if __name__ == "__main__":
     import uvicorn
