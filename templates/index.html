@@ -177,6 +177,11 @@
                 class="text-lg font-semibold mt-1"
                 x-text="selectedNovel ? selectedNovel.name : '未选择'"
               ></div>
+              <div
+                class="text-sm opacity-60 mt-2"
+                x-show="currentNovelLength"
+                x-text="'字数：' + formatWordCount(currentNovelLength) + '字'"
+              ></div>
               <div class="text-xs opacity-50 mt-2">
                 点击右上角“开始分析”生成新结果（旧结果已清空）
               </div>
@@ -410,6 +415,7 @@
           serverConfig: { api_url: "", model: "" },
           selectedNovel: null,
           currentNovelContent: null,
+          currentNovelLength: 0,
           currentAnalysis: null,
           loading: false,
           analysisComplete: false,
@@ -421,7 +427,7 @@
           testResultMsg: "",
           testLoading: false,
           tabs: [
-            { id: "summary", name: "总结" },
+            { id: "summary", name: "总结", alwaysEnabled: true },
             { id: "thunderzones", name: "雷点" },
             { id: "characters", name: "角色" },
             { id: "relationships", name: "关系图" },
@@ -473,6 +479,12 @@
 
           toggleTheme() {
             this.theme = this.theme === "dark" ? "light" : "dark";
+          },
+
+          formatWordCount(count) {
+            const value = Number(count);
+            if (!Number.isFinite(value) || value <= 0) return "0";
+            return value > 10000 ? (value / 10000).toFixed(1) + "万" : String(value);
           },
 
           log(level, message, data = null) {
@@ -606,6 +618,8 @@
             this.novelTitle = name;
             this.analysisComplete = false;
             this.currentAnalysis = null;
+            this.currentNovelContent = null;
+            this.currentNovelLength = 0;
             localStorage.removeItem("novel_analyzer_data");
             this.clearRenderedResults();
             this.currentTab = "summary";
@@ -616,9 +630,12 @@
               const res = await fetch(`/api/novel/${encodeURIComponent(path)}`);
               const data = await res.json();
               this.currentNovelContent = data.content;
+              this.currentNovelLength = data.length;
               this.log("success", `小说加载成功，字数: ${data.length}`);
             } catch (e) {
               this.errorMsg = "读取小说失败: " + e.message;
+              this.currentNovelContent = null;
+              this.currentNovelLength = 0;
               this.log("error", "读取失败", e.message);
             }
           },
@@ -679,10 +696,7 @@
               ? data.relationships.length
               : 0;
             const characterCount = chars.length;
-            const wordCountText =
-              wordCount > 10000
-                ? (wordCount / 10000).toFixed(1) + "万"
-                : String(wordCount);
+            const wordCountText = this.formatWordCount(wordCount);
 
             const quickStats = document.getElementById("quickStats");
             renderQuickStats(quickStats, {
@@ -752,6 +766,7 @@
             this.novelTitle = "选择一本小说";
             this.analysisComplete = false;
             this.currentNovelContent = null;
+            this.currentNovelLength = 0;
             this.currentTab = "summary";
             document
               .querySelectorAll(".file-item")

@@ -224,6 +224,28 @@ def _ensure_analysis_defaults(analysis: Dict[str, Any]) -> Dict[str, Any]:
 
     return analysis
 
+
+def _normalize_gender(value: str | None) -> str:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return "unknown"
+
+    male_values = {"male", "man", "m", "男", "男性", "男生", "男子", "男主"}
+    female_values = {"female", "woman", "f", "女", "女性", "女生", "女子", "女主"}
+
+    if raw in male_values:
+        return "male"
+    if raw in female_values:
+        return "female"
+
+    if "男" in raw and "女" not in raw:
+        return "male"
+    if "女" in raw and "男" not in raw:
+        return "female"
+
+    return "unknown"
+
+
 def _validate_and_fix_analysis(analysis: Dict[str, Any]) -> tuple[Dict[str, Any], list[str]]:
     """
     Light schema validation/repair to keep frontend parsable.
@@ -244,8 +266,7 @@ def _validate_and_fix_analysis(analysis: Dict[str, Any]) -> tuple[Dict[str, Any]
             if not name:
                 errors.append(f"characters[{idx}] missing name -> dropped")
                 continue
-            gender = str(c.get("gender") or "").strip() or "unknown"
-            c["gender"] = gender
+            c["gender"] = _normalize_gender(c.get("gender"))
             fixed_chars.append(c)
     else:
         errors.append("characters not list -> reset")
@@ -628,7 +649,7 @@ Extract basic novel information:
 ### 1. SEXUAL CHARACTERS ONLY
 Identify ONLY characters who engage in sexual activities (只包含有性行为的角色):
 - Name/alias
-- Gender role: male/female
+- Gender role: use lowercase English "male" or "female"
 - Identity: occupation, age, social status
 - Personality traits
 - SEXUAL PREFERENCES & KINKS: Describe what this character enjoys in bed:
@@ -724,6 +745,7 @@ Severity 判定标准:
 
 ### Field requirements (when items exist)
 - `characters[i]` MUST include: `name`, `gender`, `identity`, `personality`, `sexual_preferences`.
+  - `gender` MUST be "male" or "female" (lowercase English).
   - For FEMALE characters also include `lewdness_score` (1-100 integer) and `lewdness_analysis`.
 - `relationships[i]` MUST include: `from`, `to`, `type`, `start_way`, `description` (all strings).
 - `first_sex_scenes[i]` MUST include: `participants` (non-empty string array), `chapter`, `location`, `description`.
