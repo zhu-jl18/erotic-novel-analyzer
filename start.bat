@@ -1,7 +1,6 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo [Novel Analyzer] Starting...
 
 set "VENV_DIR=%~dp0venv"
 set "PYTHON=%VENV_DIR%\Scripts\python.exe"
@@ -33,5 +32,6 @@ if errorlevel 1 (
   )
 )
 
+echo [INFO] Starting server...
 "%PYTHON%" backend.py
 pause
