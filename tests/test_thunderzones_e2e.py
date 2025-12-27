@@ -104,14 +104,47 @@ def _select_first_novel(page) -> None:
 
 
 def _stub_analyze(page, analysis: dict) -> None:
-    body = json.dumps({"analysis": analysis}, ensure_ascii=False)
-
     def handler(route, request):
         if request.method != "POST":
             return route.fallback()
+
+        url = request.url
+        if url.endswith("/api/analyze/meta"):
+            payload = {
+                "analysis": {
+                    "novel_info": analysis.get("novel_info", {}),
+                    "summary": analysis.get("summary", ""),
+                }
+            }
+        elif url.endswith("/api/analyze/core"):
+            payload = {
+                "analysis": {
+                    "characters": analysis.get("characters", []),
+                    "relationships": analysis.get("relationships", []),
+                }
+            }
+        elif url.endswith("/api/analyze/scenes"):
+            payload = {
+                "analysis": {
+                    "first_sex_scenes": analysis.get("first_sex_scenes", []),
+                    "sex_scenes": analysis.get("sex_scenes", {"total_count": 0, "scenes": []}),
+                    "evolution": analysis.get("evolution", []),
+                }
+            }
+        elif url.endswith("/api/analyze/thunderzones"):
+            payload = {
+                "analysis": {
+                    "thunderzones": analysis.get("thunderzones", []),
+                    "thunderzone_summary": analysis.get("thunderzone_summary", ""),
+                }
+            }
+        else:
+            return route.fallback()
+
+        body = json.dumps(payload, ensure_ascii=False)
         return route.fulfill(status=200, headers={"Content-Type": "application/json"}, body=body)
 
-    page.route("**/api/analyze", handler)
+    page.route("**/api/analyze/**", handler)
 
 
 def _run_analysis(page) -> None:
