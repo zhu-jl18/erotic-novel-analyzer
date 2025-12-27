@@ -38,26 +38,25 @@ static/
 | `/api/novels`   | GET    | Scan novel directory (recursive `.txt` scan) |
 | `/api/novel/{path}` | GET | Read novel content |
 | `/api/test-connection` | GET | Test LLM API connection |
-| `/api/analyze`  | POST   | Analyze novel (single LLM call + local repair) |
+| `/api/analyze/meta` | POST | Novel metadata + summary |
+| `/api/analyze/core` | POST | Characters + relationships + lewdness |
+| `/api/analyze/scenes` | POST | First scenes + stats + evolution |
+| `/api/analyze/thunderzones` | POST | Thunderzone detection |
 
 ### Data Flow
 
 1. `scanNovels()` → `GET /api/novels` → renders dropdown
 2. `selectNovel()` → `GET /api/novel/{path}` → loads content
-3. `analyzeNovel()` → `POST /api/analyze`
-   - single LLM call with structured prompt
-   - JSON extraction with markdown code block support
-   - local repair (`_validate_and_fix_analysis`)
-   - reconciliation (`_reconcile_entities`)
-   - second validation pass
-   → `renderAllData()`
+3. `analyzeNovel()` → `POST /api/analyze/meta` + `POST /api/analyze/core` (parallel)
+4. `analyzeNovel()` → `POST /api/analyze/scenes` + `POST /api/analyze/thunderzones` (parallel, with角色/关系名单)
+5. Merge results → `renderAllData()`
 
 ### Key Features
 
 #### Thunderzone Detection
 - Detects: 绿帽 (Cuckold), NTR, 女性舔狗 (Female Doormat), 恶堕 (Fall from Grace), 其他 (Other)
 - Severity levels: 高 (High), 中 (Medium), 低 (Low)
-- Includes: type, severity, description, involved_characters, chapter_location, relationship_context
+- Includes: type, severity, description, involved_characters, relationship_context (chapter_location optional)
 
 #### Lewdness Index (Female Characters)
 - Score 1-100 for each female character
@@ -95,7 +94,7 @@ static/
 - Alpine.js `x-data="app()"` manages all state
 - DOM rendering via `document.createElement()` (no virtual DOM)
 - CSS uses oklch color space with DaisyUI theme variables (`--b1`, `--bc`, `--p`, etc.)
-- 8 tabs: summary, thunderzones, characters, relationships, firstsex, count, progress, logs
+- 9 tabs: pipeline(进度), summary, thunderzones, characters, relationships, firstsex, count, progress(发展), logs
 - Log system with levels: info, success, error, warning
 - Theme toggle (dark/light) persists to localStorage
 
@@ -105,8 +104,8 @@ static/
 - LLM response JSON extraction handles markdown code blocks
 - `call_llm_with_response()` with retry logic for 502/503/504/429
 - Security middleware: X-Content-Type-Options, Referrer-Policy, X-Frame-Options
-- Schema validation in `_validate_and_fix_analysis()`
-- Entity reconciliation in `_reconcile_entities()`
+- Strict schema validation per analysis stage (`_validate_characters`, `_validate_relationships`, etc.)
+- No auto-reconciliation; invalid output fails fast
 
 ### Data Models
 
@@ -172,7 +171,7 @@ static/
       "severity": "高|中|低",
       "description": "string",
       "involved_characters": ["string"],
-      "chapter_location": "string",
+      "chapter_location": "string (optional)",
       "relationship_context": "string"
     }
   ],

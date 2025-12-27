@@ -53,7 +53,7 @@ DEBUG=false
 
 ## 运行与开发命令
 
-- 一键启动（会安装依赖并启动）：`start.bat`
+- 一键启动（会安装依赖并启动服务）：`start.bat`
 - 手动启动：`python backend.py`
 - 开发热重载：`uvicorn backend:app --reload --host 127.0.0.1 --port 6103`
 
@@ -70,6 +70,7 @@ DEBUG=false
 
 | Tab | 功能说明 |
 |-----|---------|
+| **进度** | 分析流程进度与步骤可视化 |
 | **总结** | 快速统计、角色一览、剧情总结 |
 | **雷点** | 检测绿帽/NTR/女性舔狗/恶堕等雷点 |
 | **角色** | 男性角色、女性角色（含淫荡指数排行） |
@@ -87,7 +88,10 @@ DEBUG=false
 | `/api/novels`     | GET  | 扫描小说目录             |
 | `/api/novel/{path}` | GET | 读取指定小说内容 |
 | `/api/test-connection` | GET | 测试 API 连接            |
-| `/api/analyze`    | POST | 分析小说（一次 LLM 调用） |
+| `/api/analyze/meta` | POST | 基础信息 + 剧情总结 |
+| `/api/analyze/core` | POST | 角色 + 关系 + 淫荡指数 |
+| `/api/analyze/scenes` | POST | 首次场景 + 统计 + 发展 |
+| `/api/analyze/thunderzones` | POST | 雷点检测 |
 
 ## 分析流程
 
@@ -96,48 +100,53 @@ flowchart TD
     UI["浏览器 / Alpine.js + DaisyUI"]
     API["FastAPI / backend.py"]
     FS[(本地 .txt 文件 / NOVEL_PATH)]
-    LLM["OpenAI 兼容 API"]
-    Extract["JSON 提取"]
-    Repair["本地修复 / 结构校验 + 交叉对账"]
+    LLM1["LLM: 基础信息 + 总结"]
+    LLM2["LLM: 角色 + 关系"]
+    LLM3["LLM: 首次/统计/发展"]
+    LLM4["LLM: 雷点检测"]
 
     UI -->|GET /api/novels| API
     UI -->|GET /api/novel/:path| API
-    UI -->|POST /api/analyze| API
+    UI -->|POST /api/analyze/meta| API
+    UI -->|POST /api/analyze/core| API
+    UI -->|POST /api/analyze/scenes| API
+    UI -->|POST /api/analyze/thunderzones| API
 
     API -->|读取| FS
     FS -->|内容| API
 
-    API -->|一次调用模型 / /chat/completions| LLM
-    LLM -->|返回文本| API
-
-    API --> Extract
-    Extract --> Repair
-    Repair -->|analysis JSON| UI
+    API --> LLM1
+    API --> LLM2
+    API --> LLM3
+    API --> LLM4
+    LLM1 --> API
+    LLM2 --> API
+    LLM3 --> API
+    LLM4 --> API
+    API -->|合并结果| UI
 ```
 
 ### 核心机制
 
-#### 1. 单次 LLM 调用 + 本地修复
-- **提示词加固**：强制要求输出纯 JSON、字段齐全，并给出合法 JSON skeleton
-- **本地修复兜底**：后端对模型输出做结构清洗，并进行参与者/关系的交叉对账
+#### 1. 多次 LLM 调用（并行 + 约束）
+- **A/B 并行**：基础信息+总结 & 角色+关系+淫荡指数
+- **C/D 并行**：首次/统计/发展 & 雷点检测（输入必须携带角色/关系名单，确保一致）
 
-#### 2. 交叉对账（自动补全）
-- 从场景参与者中提取所有角色名
-- 自动补全缺失的角色卡片
-- 从性场景自动推导缺失的关系对
-- 避免关系图少人或页面解析崩溃
+#### 2. 严格校验（不自动补全）
+- 性别必须为 `male` / `female`（支持中文/英文近义词映射）
+- 关系/场景/雷点中的角色必须出自角色表
+- 任一环节失败则整体失败（不做自动补齐）
 
 #### 3. 特殊处理
 - **第一人称叙述者**：自动识别"我"等称呼，结合上下文推断性别与角色名
 - **淫荡指数**：女性角色的性开放程度评分（1-100），包含详细分析
 - **雷点检测**：识别绿帽、NTR、女性舔狗、恶堕等，标注严重程度（高/中/低）
 
-## 输出健壮性（防"抽风"）
+## 输出校验（严格失败）
 
-为了保证前端永远能渲染：
-
-- **提示词加固**：强制要求输出纯 JSON、字段齐全，并给出合法 JSON skeleton（避免模型抄到 `true/false/章节数` 这类非 JSON 内容）。
-- **本地修复兜底**（不再二次调用 LLM）：后端会对模型输出做结构清洗，并进行参与者/关系的交叉对账，尽量补齐缺失节点，避免关系图少人或页面解析崩溃。
+- **提示词加固**：强制输出纯 JSON、字段齐全
+- **强一致性**：角色性别必须合规，所有引用必须出自角色表
+- **不自动补全**：任何不合规直接失败，避免“表面可用但数据错乱”
 
 ## 雷点检测
 
