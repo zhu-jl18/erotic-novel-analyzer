@@ -78,8 +78,8 @@ static/
 - Ensures relationship graph is complete
 
 #### First-Person Narrator Handling
-- Special handling for "我" (I) and "主角" (protagonist) in Chinese novels
-- Infers name/alias from how others address them
+- Special handling for "我" (I) in Chinese novels
+- Infers name/alias from how others address them; use "我" if no explicit name
 - Infers gender from context (pronouns, how addressed)
 - Narrator is treated as a real character if they participate in sexual activities
 

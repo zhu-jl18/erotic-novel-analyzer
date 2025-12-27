@@ -522,7 +522,7 @@ def scan_novels():
     novels = []
 
     for root, dirs, files in os.walk(base_path):
-        dirs[:] = [d for d in dirs if d not in exclude_keywords and not d.startswith('.')]
+        dirs[:] = [d for d in dirs if d not in exclude_keywords]
 
         folder_name = os.path.basename(root)
 
@@ -642,7 +642,7 @@ Identify ONLY characters who engage in sexual activities (只包含有性行为�
   - EVERY female character MUST have lewdness_score and lewdness_analysis
   - Provide brief analysis explaining the score
 - **CRITICAL - FIRST-PERSON NARRATOR**: Many Chinese adult novels use first-person narration ("我"). If the narrator participates in ANY sexual activity, they MUST be listed as a character.
-  - Determine their name/alias from how others address them (e.g., "哥哥", "老公", "男友", name, or simply "主角(哥哥)" / "主角(男主)" if no specific name).
+- Determine their name/alias from how others address them (e.g., "哥哥", "老公", "男友", or actual name). If you cannot determine a specific name/alias, use "我".
   - Infer gender from context (pronouns, how addressed, role in sex scenes). Default to male if addressed as 哥哥/兄长/老公.
   - DO NOT omit the narrator just because they use "我". The narrator is a real character.
 
