@@ -1,0 +1,25 @@
+You are detecting thunderzones (reader deal-breakers) in an adult novel.
+
+## Inputs
+Allowed character names (MUST use exactly; do NOT invent new names):
+{{ allowed_names_json }}
+
+Known relationships (reference only):
+{{ relationships_json }}
+
+## Thunderzone types
+- 绿帽/Cuckold
+- NTR (Netorare)
+- 女性舔狗
+- 恶堕
+- 其他
+
+## Instructions
+- You MUST call the function tool "{{ tool_name }}".
+- severity MUST be one of: 高 / 中 / 低.
+- involved_characters must be from allowed names.
+- description must be non-empty; if unknown, use "未知" or "未提及".
+- If no thunderzones, return empty array and a short thunderzone_summary.
+
+## Novel Content
+{{ content }}

@@ -1,8 +1,35 @@
 # Changelog
 
-本文件记录对 LLM 交互链路的鲁棒性增强（a1~a5）相关改动，包括代码改动点、架构设计与设计考量。
+本文件记录 LLM 交互链路的鲁棒性演进与关键架构变更。
 
-## [Unreleased] - 2025-12-28
+## [3.0.0] - 2025-12-28
+
+### b1：彻底重构（强制 Function Calling + Pydantic Schema + 固定 YAML 配置）
+
+#### 破坏性变更
+- LLM 策略参数不再从 `.env` 读取（删除所有 `LLM_*` 配置入口）
+- 后端固定只读 `config/llm.yaml` 作为 LLM 策略配置（温度/截断/retry/repair）
+- Prompt 不再使用根目录 `prompts.py`，改为 `config/prompts/*.j2`（Jinja2 模板）
+- 移除“纯文本 + 正则抽 JSON”主链路：仅接受 `tool_calls[].function.arguments`
+
+#### 结构化输出与修复
+- Schema 作为单一事实来源：Pydantic Schema 同时用于 tool schema 生成与运行时校验
+- Repair Pass：当 schema 校验失败时，最多触发 1 次修复（仍使用同一 tool schema）
+- `/api/test-connection` 增强：会显式验证 Function Calling 是否可用
+
+#### 可观测性
+- 关键路径新增结构化日志（JSON Lines）：retry / repair / truncation / 协议回退等事件
+
+#### 代码结构
+- `backend.py` 精简为路由层
+- 新增 `src/novel_analyzer/*`：`llm_client.py`、`schemas.py`、`config_loader.py`、`content_processor.py`、`observability.py`、`validators.py`
+
+#### 测试
+- 替换旧 `tests/test_llm_robustness.py`：新增配置加载、截断、function calling、repair、日志等单测
+
+---
+
+## [2.x] - 2025-12-28 (legacy)
 
 ### a1：将四个分析端点的硬编码 Prompt 抽取到独立模块（`prompts.py`）
 
@@ -148,12 +175,19 @@
 
 ---
 
-## 配置项汇总（新增/强化）
+## 配置项汇总（v3）
 
-- `LLM_TEMPERATURE_STRUCTURED`：结构化抽取温度
-- `LLM_USE_FUNCTION_CALLING`：是否优先启用 Function Calling
-- `LLM_CONTENT_MAX_CHARS`：进入 prompt 前内容最大字符数（支持 `*_META/*_CORE/*_SCENES/*_THUNDER` 覆盖）
-- `LLM_CONTENT_STRATEGY`：长文本采样策略（支持分 section 覆盖）
-- `LLM_REPAIR_ENABLED`：是否启用 Repair Pass（支持分 section 覆盖）
-- `LLM_REPAIR_PROMPT_HEAD_MAX_CHARS`：repair prompt 中“原始要求摘要”最大长度
-- `LLM_REPAIR_BAD_OUTPUT_MAX_CHARS`：repair prompt 中“坏输出”最大长度
+### `.env`（仅 secrets / 环境特定）
+- `API_BASE_URL`
+- `API_KEY`
+- `MODEL_NAME`
+- `NOVEL_PATH`
+- `HOST` / `PORT`
+- `LOG_LEVEL` / `DEBUG`
+
+### `config/llm.yaml`（固定读取）
+- `defaults.timeout_seconds`
+- `defaults.retry.*`
+- `content_processing.*`
+- `repair.*`
+- `sections.*`（per-section 温度、tool name、prompt 模板）

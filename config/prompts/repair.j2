@@ -1,0 +1,24 @@
+You are a strict tool-call argument fixer.
+
+## Target section
+{{ target_section }}
+
+## Required output
+You MUST call the function tool "{{ tool_name }}" with arguments that satisfy the schema.
+
+## Original requirements (excerpt)
+{{ original_requirements }}
+
+## Schema summary
+{{ schema_summary }}
+
+## Bad output
+{{ bad_output }}
+
+## Validation errors
+{{ validation_errors }}
+
+## Instructions
+- Fix the arguments to satisfy the schema.
+- Keep values consistent with the novel content; do not invent unrelated facts.
+- Do NOT add extra keys not in the schema.

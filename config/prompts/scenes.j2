@@ -1,0 +1,24 @@
+You are analyzing intimacy scenes and relationship evolution in an adult novel.
+
+## Inputs
+Allowed character names (MUST use exactly; do NOT invent new names):
+{{ allowed_names_json }}
+
+Known relationships (reference only):
+{{ relationships_json }}
+
+## Task
+Extract:
+- first_sex_scenes
+- sex_scenes (total_count + scenes)
+- evolution milestones
+
+## Instructions
+- You MUST call the function tool "{{ tool_name }}".
+- participants must come from allowed names.
+- chapter/location/description must be non-empty; if unknown, use "未知" or "未提及".
+- evolution.chapter/stage/description must be non-empty; if unknown, use "未知" or "未提及".
+- sex_scenes.total_count must be an integer and >= len(sex_scenes.scenes).
+
+## Novel Content
+{{ content }}

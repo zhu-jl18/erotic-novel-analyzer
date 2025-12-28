@@ -1,0 +1,49 @@
+# LLM 策略配置（固定只读此文件）
+# 说明：所有 LLM 相关策略参数（温度/截断/retry/repair/output mode）都只能在这里配置。
+
+defaults:
+  timeout_seconds: 180
+  retry:
+    count: 3
+    backoff: exponential   # exponential | linear
+    base_wait_seconds: 2
+    max_wait_seconds: 20
+    retryable_status_codes: [429, 502, 503, 504]
+
+content_processing:
+  max_chars: 24000
+  strategy: head_middle_tail   # head | tail | head_tail | head_middle_tail
+  boundary_aware: true
+  boundary_search_window: 200
+  truncation_marker_template: "\n\n...[内容已截断: 原文 {{ original_chars }} 字，保留 {{ kept_chars }} 字]...\n\n"
+
+repair:
+  enabled: true
+  max_attempts: 1
+  prompt_head_max_chars: 8000
+  bad_output_max_chars: 6000
+
+sections:
+  meta:
+    temperature: 0.2
+    tool_name: extract_meta
+    description: Extract novel metadata and a Chinese summary.
+    prompt_file: prompts/meta.j2
+  core:
+    temperature: 0.2
+    tool_name: extract_core
+    description: Extract sexually active characters and their sexual relationships.
+    prompt_file: prompts/core.j2
+  scenes:
+    temperature: 0.2
+    tool_name: extract_scenes
+    description: Extract intimacy scenes and relationship evolution.
+    prompt_file: prompts/scenes.j2
+  thunder:
+    temperature: 0.2
+    tool_name: extract_thunderzones
+    description: Extract thunderzones (reader deal-breakers) and a short summary.
+    prompt_file: prompts/thunder.j2
+  repair:
+    temperature: 0.1
+    prompt_file: prompts/repair.j2

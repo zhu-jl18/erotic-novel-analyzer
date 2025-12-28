@@ -4,27 +4,27 @@
 
 ```
 .
-├── backend.py              # FastAPI server: file scanning + LLM calls + /api/*
-├── templates/index.html    # Single-page UI (Alpine.js) served by FastAPI
-├── static/                 # CSS + client-side rendering (e.g., chart-view.js)
-│   ├── style.css           # DaisyUI/Tailwind supplements
-│   └── chart-view.js       # Visualization functions (relationship graph, export)
-├── requirements.txt        # Python runtime dependencies
-├── requirements-dev.txt    # Development dependencies (Playwright, pytest)
-├── .env.example            # Config template (copy to .env; never commit secrets)
-├── start.bat               # Windows launcher (installs deps, starts server)
-└── tests/                  # Test suite
-    ├── test_export_report_e2e.py    # E2E test for export report
-    ├── test_thunderzones_e2e.py     # E2E test for thunderzone detection
-    ├── test_thunderzones.py         # Unit tests for thunderzone logic
-    ├── fixtures/                     # Test fixtures
-    │   ├── analysis_empty.json
-    │   └── analysis_full.json
-    └── export/                       # Sample export output
-        └── test_export_report.html
+├── backend.py                 # FastAPI server (routes + error mapping)
+├── src/novel_analyzer/        # LLM client + schemas + config + truncation + logging
+├── config/llm.yaml            # Fixed LLM strategy config (read-only path)
+├── config/prompts/*.j2        # Prompt templates (Jinja2)
+├── templates/index.html       # Single-page UI (Alpine.js) served by FastAPI
+├── static/                    # CSS + client-side rendering (e.g., chart-view.js)
+│   ├── style.css
+│   └── chart-view.js
+├── requirements.txt           # Python runtime dependencies
+├── requirements-dev.txt       # Development dependencies (Playwright, pytest)
+├── .env.example               # Config template (copy to .env; never commit secrets)
+├── start.bat                  # Windows launcher (installs deps, starts server)
+└── tests/                     # Test suite
+    ├── test_export_report_e2e.py
+    ├── test_thunderzones_e2e.py
+    ├── test_thunderzones.py
+    ├── fixtures/
+    └── export/
 ```
 
-Keep changes cohesive: backend logic in `backend.py`, UI state/behavior in `templates/index.html`, reusable JS rendering helpers in `static/`.
+Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/novel_analyzer/`, UI state/behavior in `templates/index.html`, reusable JS rendering helpers in `static/`.
 
 ## Build, Test, and Development Commands
 
@@ -82,7 +82,7 @@ Before opening a PR, ensure:
 
 1. **Syntax Check**
    ```bash
-   python -m compileall backend.py
+   python -m compileall backend.py src/novel_analyzer
    ```
 
 2. **Unit Tests**
