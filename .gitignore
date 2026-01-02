@@ -27,6 +27,7 @@ Thumbs.db
 
 # Project specific
 temp-output/
+llm_dumps/
 nul
 desktop.ini
 opencode.json
