@@ -174,7 +174,7 @@
 
           <!-- Tab内容 -->
           <div class="animate-in">
-            <div class="glass-card p-6 mb-8" x-show="!hasAnyResult()" x-cloak>
+            <div class="glass-card p-6 mb-8" x-show="currentTab === 'pipeline' && !hasAnyResult()" x-cloak>
               <div class="text-sm opacity-60">已选择小说</div>
               <div
                 class="text-lg font-semibold mt-1"
@@ -587,7 +587,7 @@
           testLoading: false,
           tabs: [
             { id: "pipeline", name: "进度", alwaysEnabled: true },
-            { id: "summary", name: "总结", alwaysEnabled: true },
+            { id: "summary", name: "总结" },
             { id: "thunderzones", name: "雷点" },
             { id: "characters", name: "角色" },
             { id: "relationships", name: "关系图" },
@@ -757,6 +757,9 @@
              if (!tab) return false;
              if (tab.alwaysEnabled) return true;
              const id = tab.id;
+             if (id === "summary") {
+               return !!this.sectionHasResult.meta || !!this.sectionHasResult.core;
+             }
              if (id === "characters" || id === "relationships") {
                return !!this.sectionHasResult.core;
              }
