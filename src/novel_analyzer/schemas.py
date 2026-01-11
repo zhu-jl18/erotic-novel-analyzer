@@ -109,3 +109,23 @@ class ThunderOutput(BaseModel):
 
     thunderzones: list[ThunderzoneEntry] = Field(default_factory=list)
     thunderzone_summary: str = Field(min_length=1)
+
+
+LewdElementType = Literal["乱伦", "调教", "恋足", "萝莉"]
+
+
+class LewdElementEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: LewdElementType
+    example: str = Field(min_length=1)
+    involved_characters: list[str] = Field(default_factory=list)
+    chapter_location: str = ""
+
+
+class LewdElementsOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lewd_elements: list[LewdElementEntry] = Field(default_factory=list)
+    lewd_elements_summary: str = Field(min_length=1)
+

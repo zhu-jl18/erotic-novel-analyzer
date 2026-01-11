@@ -199,7 +199,8 @@ def load_llm_config(repo_root: Path) -> LLMConfig:
         prompt_template=_read_text(config_dir / repair_prompt_file, "repair prompt_file"),
     )
 
-    required_sections = ["meta", "core", "scenes", "thunder"]
+    required_sections = ["meta", "core", "scenes", "thunder", "lewd_elements"]
+
     sections: dict[str, SectionConfig] = {}
     for name in required_sections:
         sec_raw = _require_dict(sections_raw.get(name), f"sections.{name}")

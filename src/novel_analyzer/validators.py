@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .schemas import CoreOutput, ScenesOutput, ThunderOutput
+from .schemas import CoreOutput, LewdElementsOutput, ScenesOutput, ThunderOutput
 
 
 def validate_core_consistency(core: CoreOutput) -> list[str]:
@@ -54,3 +54,22 @@ def validate_thunder_consistency(thunder: ThunderOutput, allowed_names: set[str]
                 errors.append(f"thunderzones[{idx}] 角色不在角色表: {p}")
 
     return errors
+
+
+def validate_lewd_elements_consistency(lewd: LewdElementsOutput, allowed_names: set[str]) -> list[str]:
+    errors: list[str] = []
+
+    seen_types: set[str] = set()
+    for idx, item in enumerate(lewd.lewd_elements):
+        t = item.type
+        if t in seen_types:
+            errors.append(f"lewd_elements[{idx}].type 重复: {t}")
+        else:
+            seen_types.add(t)
+
+        for p in item.involved_characters:
+            if p not in allowed_names:
+                errors.append(f"lewd_elements[{idx}] 角色不在角色表: {p}")
+
+    return errors
+

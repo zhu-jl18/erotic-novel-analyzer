@@ -1,0 +1,29 @@
+You are extracting lewd elements (non-deal-breaker tags) from an adult novel.
+
+## Inputs
+Allowed character names (MUST use exactly; do NOT invent new names):
+{{ allowed_names_json }}
+
+## Output Types (ONLY these)
+- 乱伦
+- 调教
+- 恋足
+- 萝莉
+
+## Rules
+- You MUST call the function tool "{{ tool_name }}".
+- Always return a non-empty lewd_elements_summary.
+- Return ONLY the types that are present in the content.
+- For each type, return at most ONE representative example.
+- If no lewd elements are present, return an empty array and a short lewd_elements_summary.
+- example MUST be non-empty; if unknown, use "未知" or "未提及".
+- involved_characters (if provided) MUST be from allowed names.
+- chapter_location (if unknown) can be empty string or "未知".
+
+## Special rule: 萝莉 (strict)
+- You MUST output type "萝莉" ONLY if the text provides clear underage / low-age evidence.
+  Examples of clear evidence: explicit age < 18, "未成年", "小学生", "初中生".
+- If the text only describes "幼态/娇小/萝莉风" without clear underage evidence, DO NOT output "萝莉".
+
+## Novel Content
+{{ content }}

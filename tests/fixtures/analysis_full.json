@@ -159,5 +159,25 @@
     { "chapter": "第3章", "stage": "突破", "description": "第一次亲密后开始重新定义边界" },
     { "chapter": "第7章", "stage": "拉扯", "description": "彼此的需求与现实冲突加剧" },
     { "chapter": "第10章", "stage": "稳定", "description": "关系趋于稳定，进入更长期的磨合" }
-  ]
+  ],
+  "thunderzones": [
+    {
+      "type": "NTR",
+      "severity": "高",
+      "description": "示例雷点",
+      "involved_characters": ["陈默", "林岚"],
+      "chapter_location": "第3章",
+      "relationship_context": "示例"
+    }
+  ],
+  "thunderzone_summary": "包含雷点示例",
+  "lewd_elements": [
+    {
+      "type": "恋足",
+      "example": "示例恋足元素",
+      "involved_characters": ["林岚"],
+      "chapter_location": "第3章"
+    }
+  ],
+  "lewd_elements_summary": "包含涩情元素示例"
 }

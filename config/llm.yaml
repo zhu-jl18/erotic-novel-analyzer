@@ -44,6 +44,12 @@ sections:
     tool_name: extract_thunderzones
     description: Extract thunderzones (reader deal-breakers) and a short summary.
     prompt_file: prompts/thunder.j2
+  lewd_elements:
+    temperature: 0.2
+    tool_name: extract_lewd_elements
+    description: Extract lewd elements (incest/training/foot/loli) and a short summary.
+    prompt_file: prompts/lewd_elements.j2
   repair:
     temperature: 0.1
     prompt_file: prompts/repair.j2
+

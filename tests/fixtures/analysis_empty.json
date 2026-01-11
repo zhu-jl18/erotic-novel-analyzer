@@ -1,9 +1,19 @@
 {
-  "novel_info": {},
+  "novel_info": {
+    "world_setting": "现代都市",
+    "world_tags": ["都市"],
+    "chapter_count": 0,
+    "is_completed": false,
+    "completion_note": ""
+  },
   "summary": "",
   "characters": [],
   "relationships": [],
   "first_sex_scenes": [],
-  "sex_scenes": null,
-  "evolution": []
+  "sex_scenes": { "total_count": 0, "scenes": [] },
+  "evolution": [],
+  "thunderzones": [],
+  "thunderzone_summary": "",
+  "lewd_elements": [],
+  "lewd_elements_summary": ""
 }

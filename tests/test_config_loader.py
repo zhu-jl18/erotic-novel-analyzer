@@ -20,7 +20,8 @@ def test_load_llm_config_from_fixed_path():
     assert cfg.defaults.retry.count >= 1
     assert cfg.defaults.retry.backoff in {"exponential", "linear"}
 
-    assert set(cfg.sections.keys()) == {"meta", "core", "scenes", "thunder"}
+    assert set(cfg.sections.keys()) == {"meta", "core", "scenes", "thunder", "lewd_elements"}
+
 
     meta = cfg.sections["meta"]
     assert meta.tool_name

@@ -34,6 +34,7 @@ from novel_analyzer.schemas import (
     CoreOutput,
     ScenesOutput,
     ThunderOutput,
+    LewdElementsOutput,
     Character,
     Relationship,
 )
@@ -41,6 +42,7 @@ from novel_analyzer.validators import (
     validate_core_consistency,
     validate_scenes_consistency,
     validate_thunder_consistency,
+    validate_lewd_elements_consistency,
 )
 
 load_dotenv()
@@ -73,6 +75,13 @@ class AnalyzeScenesRequest(BaseModel):
 
 
 class AnalyzeThunderzonesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    content: str
+    characters: list[Dict[str, Any]]
+    relationships: list[Dict[str, Any]]
+
+
+class AnalyzeLewdElementsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     content: str
     characters: list[Dict[str, Any]]
@@ -474,6 +483,48 @@ def analyze_thunderzones(req: AnalyzeThunderzonesRequest):
     return {"analysis": out.model_dump()}
 
 
+@app.post("/api/analyze/lewd-elements")
+def analyze_lewd_elements(req: AnalyzeLewdElementsRequest):
+    """分析涩情元素（非雷点标签）"""
+    client = _llm_client()
+
+    try:
+        characters = [Character.model_validate(c) for c in req.characters]
+        relationships = [Relationship.model_validate(r) for r in req.relationships]
+    except ValidationError as e:
+        _raise_pydantic_error("LewdElements 输入", e)
+
+    names = {c.name for c in characters}
+    rel_errors: list[str] = []
+    for idx, r in enumerate(relationships):
+        if r.from_ not in names:
+            rel_errors.append(f"relationships[{idx}].from 不在角色表: {r.from_}")
+        if r.to not in names:
+            rel_errors.append(f"relationships[{idx}].to 不在角色表: {r.to}")
+    _raise_errors("LewdElements 输入关系", rel_errors)
+
+    allowed_names_json = json.dumps(sorted(names), ensure_ascii=False)
+
+    sec = LLM_CFG.sections["lewd_elements"]
+    content = prepare_content(req.content, LLM_CFG, section="lewd_elements")
+    prompt = render(
+        sec.prompt_template,
+        tool_name=sec.tool_name,
+        allowed_names_json=allowed_names_json,
+        content=content,
+    )
+
+    try:
+        out = client.call_section(section="lewd_elements", prompt=prompt, output_model=LewdElementsOutput)
+    except LLMClientError as e:
+        _raise_llm_error("LewdElements", e)
+
+    errors = validate_lewd_elements_consistency(out, names)
+    _raise_errors("LewdElements", errors)
+
+    return {"analysis": out.model_dump()}
+
+
 if __name__ == "__main__":
     import uvicorn
 
@@ -483,3 +534,4 @@ if __name__ == "__main__":
     display_host = "localhost" if host in {"0.0.0.0", "::"} else host
     print(f"\n  ➜  Local:   http://{display_host}:{port}\n")
     uvicorn.run(app, host=host, port=port, log_level=log_level)
+
