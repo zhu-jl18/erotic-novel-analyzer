@@ -151,6 +151,13 @@ function renderThunderzones(container, data) {
   refreshLucideIcons();
 }
 
+function renderLewdElements(container, data) {
+  if (!container) return;
+  const html = buildLewdElementsHtml(data?.analysis);
+  container.innerHTML = html;
+  refreshLucideIcons();
+}
+
 // 获取DaisyUI主题颜色
 function getThemeColors() {
   const style = getComputedStyle(document.documentElement);
@@ -876,6 +883,80 @@ function buildRelationshipDetailsHtml(data) {
   `;
 }
 
+function buildLewdElementsHtml(analysisData) {
+  const elements = Array.isArray(analysisData?.lewd_elements)
+    ? analysisData.lewd_elements
+    : [];
+
+  const summary = escapeHtml(
+    analysisData?.lewd_elements_summary ||
+      (elements.length === 0 ? "未检测到相关元素" : "检测到涩情元素")
+  );
+
+  let html = `
+        <div class="summary-section">
+            <div class="summary-title">涩情元素概览</div>
+            <p class="summary-content">${summary}</p>
+        </div>
+  `;
+
+  if (elements.length === 0) {
+    html += buildEmptyStateHtml("sparkles", "未检测到相关元素");
+    return html;
+  }
+
+  const iconMap = {
+    乱伦: "link",
+    调教: "hand-grab",
+    恋足: "footprints",
+    萝莉: "baby",
+  };
+
+  const sorted = [...elements].sort((a, b) =>
+    String(a?.type || "").localeCompare(String(b?.type || ""), "zh")
+  );
+
+  html += `<div class="thunderzone-list">`;
+
+  for (const item of sorted) {
+    const typeRaw = String(item?.type || "未知");
+    const type = escapeHtml(typeRaw);
+    const example = escapeHtml(item?.example || "");
+    const iconName = iconMap[typeRaw] || "sparkles";
+
+    const characters = Array.isArray(item?.involved_characters)
+      ? item.involved_characters
+      : [];
+    const charactersText = characters.map((c) => escapeHtml(c)).join(", ");
+
+    const location = escapeHtml(item?.chapter_location || "");
+
+    html += `
+            <div class="thunderzone-card">
+                <div class="thunderzone-header">
+                    <span class="thunderzone-icon"><i data-lucide="${iconName}"></i></span>
+                    <span class="thunderzone-type">${type}</span>
+                    <span class="badge badge-ghost">标签</span>
+                </div>
+                <div class="thunderzone-body">
+                    <p class="thunderzone-desc">${example}</p>
+                    <div class="thunderzone-meta">
+                        <span class="meta-item"><i data-lucide="users" class="meta-icon"></i>${
+                          charactersText || "未指定"
+                        }</span>
+                        <span class="meta-item"><i data-lucide="map-pin" class="meta-icon"></i>${
+                          location || "未知位置"
+                        }</span>
+                    </div>
+                </div>
+            </div>
+        `;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 function buildThunderzonesHtml(analysisData) {
   const thunderzones = Array.isArray(analysisData?.thunderzones)
     ? analysisData.thunderzones
@@ -928,9 +1009,13 @@ function buildThunderzonesHtml(analysisData) {
 
   const typeIcons = {
     绿帽: "alert-triangle",
+    "强奸": "shield-alert",
+    "强奸/迷奸": "shield-alert",
     NTR: "flame",
-    女性舔狗: "user",
     恶堕: "alert-octagon",
+    "重口": "skull",
+    "重口/血腥调教": "skull",
+    "血腥调教": "skull",
     其他: "circle",
   };
 
@@ -1166,6 +1251,7 @@ function exportReport(analysis, novelName, opts = {}) {
   const sexSceneCountHtml = buildSexSceneCountHtml(analysis);
   const relationshipProgressHtml = buildRelationshipProgressHtml(analysis);
   const thunderzonesHtml = buildThunderzonesHtml(analysis);
+  const lewdElementsHtml = buildLewdElementsHtml(analysis);
 
   const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-theme="${theme}">
@@ -1183,18 +1269,19 @@ function exportReport(analysis, novelName, opts = {}) {
         .export-report #relationshipChart svg { width: 100%; height: 100%; }
     </style>
 </head>
-<body class="min-h-screen bg-base-100 export-report" x-data="{
-    currentTab: 'summary',
-    tabs: [
-        { id: 'summary', name: '总结' },
-        { id: 'thunderzones', name: '雷点' },
-        { id: 'characters', name: '角色' },
-        { id: 'relationships', name: '关系图' },
-        { id: 'firstsex', name: '首次' },
-        { id: 'count', name: '统计' },
-        { id: 'progress', name: '发展' }
-    ]
-}">
+ <body class="min-h-screen bg-base-100 export-report" x-data="{
+     currentTab: 'summary',
+     tabs: [
+         { id: 'summary', name: '总结' },
+         { id: 'thunderzones', name: '雷点' },
+         { id: 'lewd-elements', name: '涩情元素' },
+         { id: 'characters', name: '角色' },
+         { id: 'relationships', name: '关系图' },
+         { id: 'firstsex', name: '首次' },
+         { id: 'count', name: '统计' },
+         { id: 'progress', name: '发展' }
+     ]
+ }">
     <main class="min-h-screen py-8">
         <div class="max-w-6xl mx-auto px-6">
             <div class="mb-6">
@@ -1223,6 +1310,9 @@ function exportReport(analysis, novelName, opts = {}) {
                 </div>
                 <div x-show="currentTab === 'thunderzones'" x-cloak>
                     <div id="thunderzoneSection">${thunderzonesHtml}</div>
+                </div>
+                <div x-show="currentTab === 'lewd-elements'" x-cloak>
+                    <div id="lewdElementsSection">${lewdElementsHtml}</div>
                 </div>
                 <div x-show="currentTab === 'characters'" x-cloak>
                     <div id="mainCharacters">${charactersHtml}</div>

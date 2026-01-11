@@ -120,6 +120,20 @@ def _stub_analyze(page, analysis: dict) -> None:
                     "evolution": analysis.get("evolution", []),
                 }
             }
+        elif url.endswith("/api/analyze/lewd-elements"):
+            payload = {
+                "analysis": {
+                    "lewd_elements": analysis.get("lewd_elements", []),
+                    "lewd_elements_summary": analysis.get("lewd_elements_summary", ""),
+                }
+            }
+        elif url.endswith("/api/analyze/lewd-elements"):
+            payload = {
+                "analysis": {
+                    "lewd_elements": analysis.get("lewd_elements", []),
+                    "lewd_elements_summary": analysis.get("lewd_elements_summary", ""),
+                }
+            }
         elif url.endswith("/api/analyze/thunderzones"):
             payload = {
                 "analysis": {
@@ -147,6 +161,8 @@ def _capture_modules_inner_html(page) -> dict:
         quickStats: document.getElementById('quickStats')?.innerHTML ?? '',
         relationshipSummary: document.getElementById('relationshipSummary')?.innerHTML ?? '',
         relationshipDetails: document.getElementById('relationshipDetails')?.innerHTML ?? '',
+        thunderzoneSection: document.getElementById('thunderzoneSection')?.innerHTML ?? '',
+        lewdElementsSection: document.getElementById('lewdElementsSection')?.innerHTML ?? '',
         mainCharacters: document.getElementById('mainCharacters')?.innerHTML ?? '',
         firstSexScene: document.getElementById('firstSexScene')?.innerHTML ?? '',
         sexSceneCount: document.getElementById('sexSceneCount')?.innerHTML ?? '',
@@ -201,6 +217,8 @@ def test_export_report_matches_web_ui(server_url, analysis_full, tmp_path, theme
 
         tab_expectations = [
             ("总结", "#quickStats"),
+            ("雷点", "#thunderzoneSection"),
+            ("涩情元素", "#lewdElementsSection"),
             ("角色", "#mainCharacters"),
             ("关系图", "#relationshipChart"),
             ("首次", "#firstSexScene"),

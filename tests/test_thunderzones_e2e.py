@@ -53,7 +53,17 @@ def analysis_with_thunderzones(analysis_empty: dict) -> dict:
         }
     ]
     analysis["thunderzone_summary"] = "包含高危NTR情节"
+    analysis["lewd_elements"] = [
+        {
+            "type": "恋足",
+            "example": "出现足交描写",
+            "involved_characters": ["主角"],
+            "chapter_location": "第3章",
+        }
+    ]
+    analysis["lewd_elements_summary"] = "包含恋足元素"
     return analysis
+
 
 
 @pytest.fixture(scope="session")
@@ -131,6 +141,13 @@ def _stub_analyze(page, analysis: dict) -> None:
                     "evolution": analysis.get("evolution", []),
                 }
             }
+        elif url.endswith("/api/analyze/lewd-elements"):
+            payload = {
+                "analysis": {
+                    "lewd_elements": analysis.get("lewd_elements", []),
+                    "lewd_elements_summary": analysis.get("lewd_elements_summary", ""),
+                }
+            }
         elif url.endswith("/api/analyze/thunderzones"):
             payload = {
                 "analysis": {
@@ -163,6 +180,7 @@ def test_thunderzone_tab_visible(server_url, analysis_empty):
         _run_analysis(page)
 
         page.locator("button:has-text('雷点')").wait_for(state="visible", timeout=10_000)
+        page.locator("button:has-text('涩情元素')").wait_for(state="visible", timeout=10_000)
         browser.close()
 
 
@@ -199,6 +217,24 @@ def test_thunderzone_display(server_url, analysis_with_thunderzones):
         browser.close()
 
 
+def test_lewd_elements_empty_state(server_url, analysis_empty):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        _stub_analyze(page, analysis_empty)
+
+        page.goto(server_url, wait_until="domcontentloaded")
+        _select_first_novel(page)
+        _run_analysis(page)
+
+        page.locator("button:has-text('涩情元素')").click()
+        page.locator("#lewdElementsSection").wait_for(state="visible", timeout=10_000)
+        page.locator("#lewdElementsSection").locator("text=未检测到相关元素").wait_for(
+            state="visible", timeout=10_000
+        )
+        browser.close()
+
+
 def test_thunderzone_export(server_url, analysis_with_thunderzones, tmp_path):
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -219,8 +255,11 @@ def test_thunderzone_export(server_url, analysis_with_thunderzones, tmp_path):
 
         export_html = export_path.read_text(encoding="utf-8")
         assert "id: 'thunderzones'" in export_html
+        assert "id: 'lewd-elements'" in export_html
         assert "雷点" in export_html
+        assert "涩情元素" in export_html
         assert "NTR" in export_html
+        assert "恋足" in export_html
         assert "thunderzone-high" in export_html
 
         context.close()
