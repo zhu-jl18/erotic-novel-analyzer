@@ -30,14 +30,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Start server (Windows)
 start.bat
 
-# Start server (manual)
-python backend.py
+# Start server (manual, MUST use venv)
+.\venv\Scripts\python.exe backend.py
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (MUST use venv)
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# Run tests
-python -m pytest -q
+# Run tests (MUST use venv)
+.\venv\Scripts\python.exe -m pytest -q
 ```
 
 Server runs at `http://127.0.0.1:6103` by default.
@@ -77,7 +77,7 @@ static/                    # CSS + client-side rendering (chart-view.js)
 
 - `.env` (not committed): secrets / environment-specific settings only
   - `API_BASE_URL`, `API_KEY`, `MODEL_NAME`
-  - `HOST`, `PORT`, `LOG_LEVEL`, `DEBUG`
+  - `HOST`, `PORT`, `LOG_LEVEL`, `LLM_DUMP_ENABLED`
 - `config/llm.yaml` (committed): **LLM strategy only**
   - per-section temperature
   - truncation/sampling settings
@@ -112,13 +112,13 @@ Structured JSON logs emitted via logger `novel_analyzer.llm`:
 ### Unit + E2E
 
 ```bash
-python -m pytest -q
+.\venv\Scripts\python.exe -m pytest -q
 ```
 
 E2E requires Playwright:
 
 ```bash
-pip install -r requirements-dev.txt
-python -m playwright install chromium
-python -m pytest -q
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv\Scripts\python.exe -m playwright install chromium
+.\venv\Scripts\python.exe -m pytest -q
 ```

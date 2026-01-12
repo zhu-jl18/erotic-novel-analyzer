@@ -184,7 +184,7 @@
   - 具体校验错误列表（validation errors）
 - 明确限制“只重试一次”：
   - 防止死循环与费用失控
-  - 失败时优先返回原始错误信息（同时在 DEBUG 模式可查看截断的原始响应片段）
+  - 失败时优先返回原始错误信息（同时在启用 `LLM_DUMP_ENABLED` 时可查看截断的原始响应片段）
 
 ---
 
@@ -195,7 +195,7 @@
 - `API_KEY`
 - `MODEL_NAME`
 - `HOST` / `PORT`
-- `LOG_LEVEL` / `DEBUG`
+- `LOG_LEVEL` / `LLM_DUMP_ENABLED`
 
 ### `config/llm.yaml`（固定读取）
 - `defaults.timeout_seconds`

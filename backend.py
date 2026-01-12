@@ -47,8 +47,6 @@ from novel_analyzer.validators import (
 
 load_dotenv()
 
-DEBUG = os.getenv("DEBUG", "").strip().lower() in {"1", "true", "yes", "y"}
-
 app = FastAPI(
     title="小说分析器",
     description="基于LLM的小说分析工具 - 多角色、多关系、性癖分析",
@@ -132,7 +130,7 @@ def _raise_pydantic_error(section: str, e: ValidationError) -> None:
 
 def _raise_llm_error(section: str, e: LLMClientError) -> None:
     detail = f"{section} 调用失败: {e}"
-    if DEBUG and e.raw_response:
+    if llm_dumps.enabled() and e.raw_response:
         detail += f"\n\n原始响应(截断):\n{e.raw_response[:2000]}"
     raise HTTPException(status_code=422, detail=detail)
 

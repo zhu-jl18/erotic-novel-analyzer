@@ -47,8 +47,8 @@
   - 要求：除变更提案/历史归档外，代码与当前文档不再出现上述关键词
 
 - [x] 5.2 运行测试
-  - `python -m pytest -q`
-  - （如需）`python -m pytest tests/test_*_e2e.py -q`
+  - `.\venv\Scripts\python.exe -m pytest -q`
+  - （如需）`.\venv\Scripts\python.exe -m pytest tests/test_*_e2e.py -q`
 
 ## 6. OpenSpec 校验
 

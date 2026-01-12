@@ -73,11 +73,11 @@
 ## 4. 自动化测试验证
 
 - [ ] 4.1 运行新增的 E2E 测试
-  - 命令：`python -m pytest tests/test_tab_interaction_e2e.py -v`
+  - 命令：`.\venv\Scripts\python.exe -m pytest tests/test_tab_interaction_e2e.py -v`
   - 确认所有 4 个场景通过
 
 - [ ] 4.2 运行完整测试套件
-  - 命令：`python -m pytest -q`
+  - 命令：`.\venv\Scripts\python.exe -m pytest -q`
   - 确认无回归（现有测试不受影响）
 
 ## 5. 完成验证

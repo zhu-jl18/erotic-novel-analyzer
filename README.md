@@ -17,8 +17,7 @@
 
 ```bash
 python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
 copy .env.example .env
 start.bat
 ```
@@ -39,8 +38,9 @@ MODEL_NAME=gpt-4o
 HOST=127.0.0.1
 PORT=6103
 LOG_LEVEL=warning
-DEBUG=false
 ```
+
+排查“雷点为空 / Function Call 不规范 / 返回未知”等问题时，可在 `.env` 中设置 `LLM_DUMP_ENABLED=true` 并重启服务端（会落盘 LLM 请求/响应）。
 
 ### 2) LLM 策略 `config/llm.yaml`（必填）
 此文件在仓库内，后端启动时固定读取。你通常会关心：
@@ -84,19 +84,16 @@ Pydantic Schema 校验
 
 ## 开发命令
 - 一键启动：`start.bat`
-- 手动启动：`python backend.py`
-- 热重载：`uvicorn backend:app --reload --host 127.0.0.1 --port 6103`
+- 手动启动（必须使用 venv）：`.\venv\Scripts\python.exe backend.py`
+- 热重载（必须使用 venv）：`.\venv\Scripts\python.exe -m uvicorn backend:app --reload --host 127.0.0.1 --port 6103`
 
 ## 测试
 
 > 必须在虚拟环境里运行（不要用系统 Python）。
 
 - Windows（本仓库默认使用 `venv/`）：
-  - 进入 venv：`.\venv\Scripts\activate`
-  - 运行测试：`python -m pytest -q`
-
-- 不想 activate 的话，直接用 venv 里的 python：
-  - 单测：`.\venv\Scripts\python.exe -m pytest -q`
+  - （可选）进入 venv：`.\venv\Scripts\activate`
+  - 运行测试（推荐直接指定 venv python，避免误用系统 Python）：`.\venv\Scripts\python.exe -m pytest -q`
 
 - 需要 Playwright（E2E/前端渲染相关测试会用到）：
   ```bash

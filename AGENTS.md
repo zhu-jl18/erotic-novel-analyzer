@@ -53,21 +53,24 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 ## Build, Test, and Development Commands
 
 ### Setup
-- Create venv (recommended): `python -m venv venv` then `.\venv\Scripts\activate` (Windows).
-- Install deps (in venv): `python -m pip install -r requirements.txt`
-- Install dev deps (in venv): `python -m pip install -r requirements-dev.txt`
+- **Required**: Create venv: `python -m venv venv`
+- **Required**: Always run commands via the venv interpreter (either activate it or call it explicitly)
+  - Activate (Windows): `.\venv\Scripts\activate`
+  - Explicit (Windows): `.\venv\Scripts\python.exe ...`
+- Install deps: `.\venv\Scripts\python.exe -m pip install -r requirements.txt`
+- Install dev deps: `.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt`
 
 ### Testing
-- Run all unit tests (in venv): `python -m pytest -q`
-- Run all E2E tests (in venv): `python -m pytest tests/test_*_e2e.py -q`
-- Run specific test file (in venv): `python -m pytest tests/test_thunderzones.py -q`
-- Run with verbose output (in venv): `python -m pytest -v`
+- Run all unit tests: `.\venv\Scripts\python.exe -m pytest -q`
+- Run all E2E tests: `.\venv\Scripts\python.exe -m pytest tests/test_*_e2e.py -q`
+- Run specific test file: `.\venv\Scripts\python.exe -m pytest tests/test_thunderzones.py -q`
+- Run with verbose output: `.\venv\Scripts\python.exe -m pytest -v`
 
 ### E2E Test Setup
 ```bash
 # Install Playwright
-pip install -r requirements-dev.txt
-python -m playwright install chromium
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv\Scripts\python.exe -m playwright install chromium
 ```
 
 ## Coding Style & Naming Conventions
@@ -101,20 +104,20 @@ Before opening a PR, ensure:
 
 1. **Syntax Check**
    ```bash
-   python -m compileall backend.py src/novel_analyzer
+   .\venv\Scripts\python.exe -m compileall backend.py src/novel_analyzer
    ```
 
 2. **Unit Tests**
    ```bash
-   python -m pytest -q
+   .\venv\Scripts\python.exe -m pytest -q
    ```
    All tests must pass.
 
 3. **E2E Tests**
    ```bash
-   pip install -r requirements-dev.txt
-   python -m playwright install chromium
-   python -m pytest -q
+   .\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+   .\venv\Scripts\python.exe -m playwright install chromium
+   .\venv\Scripts\python.exe -m pytest -q
    ```
    All E2E tests must pass.
 
@@ -179,14 +182,14 @@ The server includes security middleware:
 - API keys are only stored on the server (`.env`)
 - Frontend never has access to API keys
 - LLM responses are validated and sanitized before use
-- `DEBUG=false` in production to prevent leaking raw LLM responses
+- `LLM_DUMP_ENABLED=false` in production to prevent leaking raw LLM responses
 
 ## Development Workflow
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Run unit tests: `python -m pytest -q`
-4. Run E2E tests: `python -m pytest tests/test_*_e2e.py -q`
+3. Run unit tests: `.\venv\Scripts\python.exe -m pytest -q`
+4. Run E2E tests: `.\venv\Scripts\python.exe -m pytest tests/test_*_e2e.py -q`
 5. Manually smoke test the UI
 6. Commit with conventional commit message
 7. Push and create a PR
@@ -196,10 +199,10 @@ The server includes security middleware:
 
 ### Import Errors
 - Ensure you're using a virtual environment
-- Run `pip install -r requirements.txt`
+- Run `.\venv\Scripts\python.exe -m pip install -r requirements.txt`
 
 ### Playwright Issues
-- Run `python -m playwright install chromium`
+- Run `.\venv\Scripts\python.exe -m playwright install chromium`
 - Ensure Chromium browser is installed
 
 ### Port Already in Use

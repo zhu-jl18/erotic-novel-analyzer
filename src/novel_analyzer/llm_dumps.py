@@ -13,10 +13,7 @@ def _is_truthy(value: str) -> bool:
 
 
 def enabled() -> bool:
-    raw = os.getenv("LLM_DUMP_ENABLED")
-    if raw is None or not str(raw).strip():
-        return _is_truthy(os.getenv("DEBUG", ""))
-    return _is_truthy(str(raw))
+    return _is_truthy(os.getenv("LLM_DUMP_ENABLED", ""))
 
 
 def dump_dir() -> Path:

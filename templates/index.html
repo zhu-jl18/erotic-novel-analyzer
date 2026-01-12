@@ -310,8 +310,6 @@
                   <code class="px-1 py-0.5 rounded bg-[var(--glass)]">.env</code>
                   中设置
                   <code class="px-1 py-0.5 rounded bg-[var(--glass)]">LLM_DUMP_ENABLED=true</code>
-                  （或
-                  <code class="px-1 py-0.5 rounded bg-[var(--glass)]">DEBUG=true</code>）
                   后重启服务端。
                 </p>
                 <div class="mt-4 flex flex-wrap gap-2">
@@ -385,7 +383,7 @@
                       x-show="llmDumps.length === 0"
                       class="text-center py-10 opacity-40 text-sm"
                     >
-                      暂无 dumps（需要启用 LLM_DUMP_ENABLED/DEBUG）
+                      暂无 dumps（需要启用 LLM_DUMP_ENABLED）
                     </div>
                   </div>
                 </div>

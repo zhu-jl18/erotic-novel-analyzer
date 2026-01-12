@@ -27,7 +27,7 @@ LLM-powered novel analyzer for adult fiction. Extracts metadata, characters, rel
 - Security middleware adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`
 
 ### Testing Strategy
-- Unit tests: `python -m pytest -q`
+- Unit tests (MUST use venv): `.\venv\Scripts\python.exe -m pytest -q`
 - E2E tests: Playwright + Chromium (`tests/test_*_e2e.py`)
 - Run all tests before PR; fix all failures
 

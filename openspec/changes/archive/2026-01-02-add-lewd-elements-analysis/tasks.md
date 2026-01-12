@@ -47,6 +47,6 @@
   - 导出报告中包含涩情元素模块
 
 ## 6. 验证
-- [ ] 6.1 运行 `python -m pytest -q`
-- [ ] 6.2 运行 `python -m compileall backend.py src/novel_analyzer`
+- [ ] 6.1 运行 `.\venv\Scripts\python.exe -m pytest -q`
+- [ ] 6.2 运行 `.\venv\Scripts\python.exe -m compileall backend.py src/novel_analyzer`
 - [ ] 6.3 再次运行 `openspec validate add-lewd-elements-analysis --strict`
