@@ -1,14 +1,17 @@
 <!-- OPENSPEC:START -->
+
 # OpenSpec Instructions
 
 These instructions are for AI assistants working in this project.
 
 Always open `@/openspec/AGENTS.md` when the request:
+
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
 Use `@/openspec/AGENTS.md` to learn:
+
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -16,13 +19,29 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
-# Important
-
-
-Use ";" instead of "&&" to run  multi commands in PowerShell.
-
 
 # Repository Guidelines
+
+## Git Identity
+
+This repository is owned by **lovingfish**. Before committing or using `gh` CLI, verify your identity:
+
+```bash
+# Check current Git identity (repo-level)
+git config user.name
+git config user.email
+
+# Switch to the correct identity (repo-level only, won't affect global config)
+git config --local user.name "lovingfish"
+git config --local user.email "nontrivial2025@gmail.com"
+
+# Check GitHub CLI auth status
+gh auth status
+```
+
+> **Note**: The `--local` flag ensures these settings apply **only to this repository** and won't override your global Git configuration.
+
+Ensure commits are attributed to the correct user to maintain a clean contribution history.
 
 ## Project Structure & Module Organization
 
@@ -53,6 +72,7 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 ## Build, Test, and Development Commands
 
 ### Setup
+
 - **Required**: Create venv: `python -m venv venv`
 - **Required**: Always run commands via the venv interpreter (either activate it or call it explicitly)
   - Activate (Windows): `.\venv\Scripts\activate`
@@ -61,12 +81,14 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 - Install dev deps: `.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt`
 
 ### Testing
+
 - Run all unit tests: `.\venv\Scripts\python.exe -m pytest -q`
 - Run all E2E tests: `.\venv\Scripts\python.exe -m pytest tests/test_*_e2e.py -q`
 - Run specific test file: `.\venv\Scripts\python.exe -m pytest tests/test_thunderzones.py -q`
 - Run with verbose output: `.\venv\Scripts\python.exe -m pytest -v`
 
 ### E2E Test Setup
+
 ```bash
 # Install Playwright
 .\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
@@ -76,6 +98,7 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 ## Coding Style & Naming Conventions
 
 ### Python
+
 - 4-space indentation
 - Keep functions small and focused
 - Validate external inputs (paths, URLs, LLM output)
@@ -83,11 +106,13 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 - Internal helpers use a leading `_` (e.g., `_validate_api_url`, `_raise_errors`)
 
 ### Frontend
+
 - Stay "vanilla" (Alpine.js + DOM APIs)
 - Avoid adding build tooling unless there's a strong reason
 - Follow existing patterns in `templates/index.html` and `static/chart-view.js`
 
 ### API Design
+
 - Endpoints live under `/api/*`
 - Use Pydantic models for request/response validation
 - Return proper HTTP status codes (400 for client errors, 422 for validation errors, 500 for server errors)
@@ -95,30 +120,37 @@ Keep changes cohesive: routing in `backend.py`, LLM/validation/config in `src/no
 ## Testing Guidelines
 
 ### Test Files
+
 - `test_thunderzones.py` - Unit tests for thunderzone detection logic
 - `test_export_report_e2e.py` - E2E test for export report functionality
 - `test_thunderzones_e2e.py` - E2E test for thunderzone UI and detection
 
 ### Test Requirements
+
 Before opening a PR, ensure:
 
 1. **Syntax Check**
+
    ```bash
    .\venv\Scripts\python.exe -m compileall backend.py src/novel_analyzer
    ```
 
 2. **Unit Tests**
+
    ```bash
    .\venv\Scripts\python.exe -m pytest -q
    ```
+
    All tests must pass.
 
 3. **E2E Tests**
+
    ```bash
    .\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
    .\venv\Scripts\python.exe -m playwright install chromium
    .\venv\Scripts\python.exe -m pytest -q
    ```
+
    All E2E tests must pass.
 
 4. **Manual Smoke Test**
@@ -130,6 +162,7 @@ Before opening a PR, ensure:
    - Test log system
 
 ### Test Coverage Goals
+
 - Core backend logic (validation, reconciliation)
 - Frontend rendering functions (export, visualization)
 - API endpoints
@@ -138,7 +171,9 @@ Before opening a PR, ensure:
 ## Commit & Pull Request Guidelines
 
 ### Commit Messages
+
 Follow Conventional Commits observed in history:
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `refactor:` - Code refactoring
@@ -149,13 +184,16 @@ Follow Conventional Commits observed in history:
 Use short summaries in Chinese or English.
 
 ### Pull Requests
+
 PRs should include:
+
 - **What changed**: Clear description of the changes
 - **Why**: Motivation or problem being solved
 - **How to verify**: Steps to test the changes
 - **Screenshots/GIFs**: For UI changes
 
 ### Security Considerations
+
 - Call out security-impacting edits explicitly (path handling, host binding, file access)
 - Backward compatibility is not required—prefer clarity over preserving old behavior
 - Never commit `.env` or API keys
@@ -163,22 +201,27 @@ PRs should include:
 ## Security & Configuration Tips
 
 ### Configuration
+
 - Keep `HOST=127.0.0.1` unless you intentionally want LAN exposure
 - Never commit `.env` or API keys to the repository
 - Keep novel files local and treat them as sensitive input
 - Use `LOG_LEVEL=warning` in production to reduce noise
 
 ### Security Headers
+
 The server includes security middleware:
+
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: no-referrer`
 - `X-Frame-Options: DENY`
 
 ### Path Security
+
 - Backend does not scan/read local novel files (no directory traversal surface)
 - Novel content is imported on the frontend via local file selection (single `.txt`)
 
 ### LLM Security
+
 - API keys are only stored on the server (`.env`)
 - Frontend never has access to API keys
 - LLM responses are validated and sanitized before use
@@ -198,18 +241,22 @@ The server includes security middleware:
 ## Common Issues
 
 ### Import Errors
+
 - Ensure you're using a virtual environment
 - Run `.\venv\Scripts\python.exe -m pip install -r requirements.txt`
 
 ### Playwright Issues
+
 - Run `.\venv\Scripts\python.exe -m playwright install chromium`
 - Ensure Chromium browser is installed
 
 ### Port Already in Use
+
 - Change `PORT` in `.env` or
 - Kill the process using port 6103: `netstat -ano | findstr :6103` (Windows)
 
 ### API Connection Failures
+
 - Check `API_BASE_URL`, `API_KEY`, `MODEL_NAME` in `.env`
 - Test connection via `/api/test-connection` endpoint
 - Check firewall/network settings

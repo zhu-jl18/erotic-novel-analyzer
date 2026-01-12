@@ -1,17 +1,19 @@
 When the user trigger openspec flow, u must strictly follow the instructions of openspec below.
 
-
 <!-- OPENSPEC:START -->
+
 # OpenSpec Instructions
 
 These instructions are for AI assistants working in this project.
 
 Always open `@/openspec/AGENTS.md` when the request:
+
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
 Use `@/openspec/AGENTS.md` to learn:
+
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -23,6 +25,27 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Git Identity
+
+This repository is owned by **lovingfish**. Before committing or using `gh` CLI, verify your identity:
+
+```bash
+# Check current Git identity (repo-level)
+git config user.name
+git config user.email
+
+# Switch to the correct identity (repo-level only, won't affect global config)
+git config --local user.name "lovingfish"
+git config --local user.email "nontrivial2025@gmail.com"
+
+# Check GitHub CLI auth status
+gh auth status
+```
+
+> **Note**: The `--local` flag ensures these settings apply **only to this repository** and won't override your global Git configuration.
+
+Ensure commits are attributed to the correct user to maintain a clean contribution history.
 
 ## Commands
 
@@ -68,7 +91,7 @@ static/                    # CSS + client-side rendering (chart-view.js)
 
 1. `onNovelFileChange()` → 浏览器读取本地 `.txt`（UTF-8/GB18030 自动识别，可手动切换）→ 写入 `currentNovelContent`
 2. `analyzeNovel()` → `POST /api/analyze/meta` + `POST /api/analyze/core` (parallel)
-3. `analyzeNovel()` → `POST /api/analyze/scenes` + `POST /api/analyze/thunderzones` (parallel, with角色/关系名单)
+3. `analyzeNovel()` → `POST /api/analyze/scenes` + `POST /api/analyze/thunderzones` (parallel, with 角色/关系名单)
 4. Merge results → `renderAllData()`
 
 ## Backend Design (v3)
@@ -96,6 +119,7 @@ static/                    # CSS + client-side rendering (chart-view.js)
 ### Observability
 
 Structured JSON logs emitted via logger `novel_analyzer.llm`:
+
 - retry
 - repair
 - truncation
